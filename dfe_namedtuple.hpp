@@ -174,6 +174,7 @@ dtypes_description(const T& t)
 
 } // namespace namedtuple_impl
 
+/// Write records as comma-separated values into a text file.
 template<typename Namedtuple>
 class CsvNamedtupleWriter {
 public:
@@ -183,11 +184,11 @@ public:
   CsvNamedtupleWriter(CsvNamedtupleWriter&&) = default;
   CsvNamedtupleWriter& operator=(CsvNamedtupleWriter&&) = default;
   ~CsvNamedtupleWriter() = default;
-  /// Open a .npy file at the given path. Overwrites existing data.
+  /// Create a csv file at the given path. Overwrites existing data.
   CsvNamedtupleWriter(std::string path);
 
-  /// Append a new data point to the end of the file.
-  void append(const Namedtuple& nt);
+  /// Append a record to the end of the file.
+  void append(const Namedtuple& record);
 
 private:
   template<typename TupleLike, std::size_t... I>
@@ -196,7 +197,7 @@ private:
   std::ofstream m_file;
 };
 
-/// Write namedtuples into a NumPy-compatible .npy file.
+/// Write records into a binary NumPy-compatible `.npy` file.
 ///
 /// See https://docs.scipy.org/doc/numpy/neps/npy-format.html for a detailed
 /// explanation of the file format.
@@ -208,12 +209,12 @@ public:
   NpyNamedtupleWriter& operator=(const NpyNamedtupleWriter&) = delete;
   NpyNamedtupleWriter(NpyNamedtupleWriter&&) = default;
   NpyNamedtupleWriter& operator=(NpyNamedtupleWriter&&) = default;
-  /// Open a .npy file at the given path. Overwrites existing data.
+  /// Create a npy file at the given path. Overwrites existing data.
   NpyNamedtupleWriter(std::string path);
   ~NpyNamedtupleWriter();
 
-  /// Append a new data point to the end of the file.
-  void append(const Namedtuple& nt);
+  /// Append a record to the end of the file.
+  void append(const Namedtuple& record);
 
 private:
   void write_header(std::size_t num_tuples);
@@ -243,9 +244,9 @@ dfe::CsvNamedtupleWriter<Namedtuple>::CsvNamedtupleWriter(std::string path)
 
 template<typename Namedtuple>
 void
-dfe::CsvNamedtupleWriter<Namedtuple>::append(const Namedtuple& nt)
+dfe::CsvNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
 {
-  write(nt.to_tuple(), namedtuple_impl::SequenceGenerator<Namedtuple::N>());
+  write(record.to_tuple(), namedtuple_impl::SequenceGenerator<Namedtuple::N>());
 }
 
 template<typename Namedtuple>
@@ -297,9 +298,9 @@ dfe::NpyNamedtupleWriter<Namedtuple>::~NpyNamedtupleWriter()
 
 template<typename Namedtuple>
 void
-dfe::NpyNamedtupleWriter<Namedtuple>::append(const Namedtuple& nt)
+dfe::NpyNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
 {
-  write(nt.to_tuple(), namedtuple_impl::SequenceGenerator<Namedtuple::N>());
+  write(record.to_tuple(), namedtuple_impl::SequenceGenerator<Namedtuple::N>());
   m_num_tuples += 1;
 }
 
