@@ -7,8 +7,38 @@ otherwise they only need a C++11 compatible compiler. They require no
 installation and can be used by copying them into your own projects and
 including them directly.
 
-Libraries
----------
+Namedtuple
+----------
 
-*   `dfe_namedtuple.hpp`: allow structs to acts as introspectable named
-    tuples and write them into either `.csv` or `.npy` files.
+Add some self-awareness to a POD type
+
+    #include "dfe_namedtuple.hpp"
+
+    struct Record {
+      uint32_t x;
+      float b;
+      int16_t z;
+      DFE_NAMEDTUPLE(Record, x, b, z);
+    }
+
+and write it to disk in multiple formats:
+
+    dfe::CsvNamedtupleWriter csv("records.csv"); // or
+    dfe::NpyNamedtupleWriter npy("records.npy"); // or
+    dfe::TabularNamedtupleWriter tab("records.txt");
+
+    csv.append(Record{1, 1.4, -2}); // same call for other writers
+
+The results are either comma-separated values
+
+    x,b,z
+    1,1.4,-2
+    ...
+
+or tabular text data
+
+    x     b     z
+    1     1.4   -2
+    ...
+
+or binary [npy](https://docs.scipy.org/doc/numpy/neps/npy-format.html) data.
