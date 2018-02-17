@@ -17,6 +17,7 @@ main(int argc, char* argv[])
 {
   dfe::CsvNamedtupleWriter<Data> csv("test.csv");
   dfe::NpyNamedtupleWriter<Data> npy("test.npy");
+  dfe::TabularNamedtupleWriter<Data> tab("test.txt");
 
   Data x;
   x.dac0 = 0;
@@ -34,6 +35,7 @@ main(int argc, char* argv[])
     std::cout << x << std::endl;
     csv.append(x);
     npy.append(x);
+    tab.append(x);
   }
 
   return EXIT_SUCCESS;
