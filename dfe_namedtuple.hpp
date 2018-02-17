@@ -18,7 +18,7 @@
 #include <array>
 #include <cstring>
 #include <fstream>
-#include <limits>
+#include <iomanip>
 #include <string>
 #include <tuple>
 
@@ -100,42 +100,53 @@ struct TypeInfo {
 };
 template<>
 struct TypeInfo<uint8_t> {
+  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(u1); }
+  static constexpr int text_width() { return 3; }
 };
 template<>
 struct TypeInfo<uint16_t> {
   static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(u2); }
+  static constexpr int text_width() { return 5; }
 };
 template<>
 struct TypeInfo<uint32_t> {
   static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(u4); }
+  static constexpr int text_width() { return 10; }
 };
 template<>
 struct TypeInfo<uint64_t> {
   static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(u8); }
+  static constexpr int text_width() { return 20; }
 };
 template<>
 struct TypeInfo<int8_t> {
   static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(i1); }
+  static constexpr int text_width() { return 4; }
 };
 template<>
 struct TypeInfo<int16_t> {
   static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(i2); }
+  static constexpr int text_width() { return 6; }
 };
 template<>
 struct TypeInfo<int32_t> {
   static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(i4); }
+  static constexpr int text_width() { return 11; }
 };
 template<>
 struct TypeInfo<int64_t> {
   static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(i8); }
+  static constexpr int text_width() { return 21; }
 };
 template<>
 struct TypeInfo<float> {
   static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(f4); }
+  static constexpr int text_width() { return 10; }
 };
 template<>
 struct TypeInfo<double> {
   static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(f8); }
+  static constexpr int text_width() { return 10; }
 };
 // not needed anymore. avoid cluttering the namespace
 #undef DFE_DTYPE_CODE
@@ -144,9 +155,7 @@ template<typename... Types>
 inline std::array<const char*, sizeof...(Types)>
 dtypes_codes(const std::tuple<Types...>& t)
 {
-  std::array<const char*, sizeof...(Types)> out = {
-    TypeInfo<typename std::decay<Types>::type>::dtype_code()...};
-  return out;
+  return {TypeInfo<typename std::decay<Types>::type>::dtype_code()...};
 }
 
 template<typename T>
@@ -170,6 +179,13 @@ dtypes_description(const T& t)
   }
   descr += ']';
   return descr;
+}
+
+template<typename... Types>
+inline std::array<int, sizeof...(Types)>
+text_widths(const std::tuple<Types...>& t)
+{
+  return {TypeInfo<typename std::decay<Types>::type>::text_width()...};
 }
 
 } // namespace namedtuple_impl
@@ -224,6 +240,30 @@ private:
   std::ofstream m_file;
   std::size_t m_fixed_header_length;
   std::size_t m_num_tuples;
+};
+
+/// Write records as a space-separated table into a text file.
+template<typename Namedtuple>
+class TabularNamedtupleWriter {
+public:
+  TabularNamedtupleWriter() = delete;
+  TabularNamedtupleWriter(const TabularNamedtupleWriter&) = delete;
+  TabularNamedtupleWriter& operator=(const TabularNamedtupleWriter&) = delete;
+  TabularNamedtupleWriter(TabularNamedtupleWriter&&) = default;
+  TabularNamedtupleWriter& operator=(TabularNamedtupleWriter&&) = default;
+  ~TabularNamedtupleWriter() = default;
+  /// Create a tabular text file at the given path. Overwrites existing data.
+  TabularNamedtupleWriter(std::string path);
+
+  /// Append a record to the end of the file.
+  void append(const Namedtuple& record);
+
+private:
+  template<typename TupleLike, std::size_t... I>
+  void write(const TupleLike& values, namedtuple_impl::Sequence<I...>);
+
+  std::ofstream m_file;
+  std::array<int, Namedtuple::N> m_widths;
 };
 
 } // namespace dfe
@@ -282,7 +322,7 @@ dfe::NpyNamedtupleWriter<Namedtuple>::NpyNamedtupleWriter(std::string path)
   // write a header that uses the maximum amount of space, i.e. biggest
   // possible number of ntuples, so that we have enough space when we
   // overwrite it w/ the actual number of tuples at closing time.
-  write_header(std::numeric_limits<size_t>::max());
+  write_header(SIZE_MAX);
   write_header(0);
 }
 
@@ -359,4 +399,47 @@ dfe::NpyNamedtupleWriter<Namedtuple>::write(
                       reinterpret_cast<const char*>(&std::get<I>(values)),
                       sizeof(typename std::tuple_element<I, TupleLike>::type))),
                     0)...};
+}
+
+// implementation tabular writer
+
+template<typename Namedtuple>
+dfe::TabularNamedtupleWriter<Namedtuple>::TabularNamedtupleWriter(
+  std::string path)
+  : m_widths(namedtuple_impl::text_widths(Namedtuple().to_tuple()))
+{
+  // make our life easier. always throw on error
+  m_file.exceptions(std::ofstream::badbit | std::ofstream::failbit);
+  m_file.open(
+    path, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
+  // ensure each column is wide enough to hold its title
+  auto names = Namedtuple::names();
+  for (size_t i = 0; i < Namedtuple::N; ++i) {
+    m_widths[i] = std::max<int>(m_widths[i], names[i].size());
+  }
+  // write column names as header
+  write(names, namedtuple_impl::SequenceGenerator<Namedtuple::N>());
+}
+
+template<typename Namedtuple>
+void
+dfe::TabularNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
+{
+  write(record.to_tuple(), namedtuple_impl::SequenceGenerator<Namedtuple::N>());
+}
+
+template<typename Namedtuple>
+template<typename TupleLike, std::size_t... I>
+void
+dfe::TabularNamedtupleWriter<Namedtuple>::write(
+  const TupleLike& values, namedtuple_impl::Sequence<I...>)
+{
+  // see csv implementation for detailed explanation of whats going on here
+  using swallow = int[];
+  int col = 0;
+  (void)swallow{0, (void(
+                      m_file << (0 < col++ ? " " : "") << std::left
+                             << std::setw(m_widths[I]) << std::get<I>(values)),
+                    0)...};
+  m_file << '\n';
 }
