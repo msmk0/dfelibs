@@ -7,6 +7,21 @@ otherwise they only need a C++11 compatible compiler. They require no
 installation and can be used by copying them into your own projects and
 including them directly.
 
+Dispatcher
+----------
+
+Register a variable number of commands with the dispatcher
+
+    #include "dfe_dispatcher.hpp"
+
+    dfe::Dispatcher dispatchr;
+
+    dispatchr.add("a_function", ...);
+
+and call it by name at a later point:
+
+    dispatchr.call("a_function", {"argument0", "argument1"});
+
 Namedtuple
 ----------
 
