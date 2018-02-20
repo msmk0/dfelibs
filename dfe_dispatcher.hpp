@@ -62,7 +62,7 @@ Dispatcher::add(
 {
   if (m_commands.count(name)) {
     throw std::invalid_argument(
-      "try to register existing command '" + name + "'");
+      "Can not register command '" + name + "' more than once");
   }
   m_commands[std::move(name)] = Command{func, nargs};
 }
@@ -152,12 +152,12 @@ Dispatcher::call(const std::string& name, const std::vector<std::string>& args)
 {
   auto cmd = m_commands.find(name);
   if (cmd == m_commands.end()) {
-    throw std::invalid_argument("unknown command '" + name + "'");
+    throw std::invalid_argument("Unknown command '" + name + "'");
   }
   if (args.size() != cmd->second.nargs) {
     std::string msg;
     throw std::invalid_argument(
-      "command '" + name + "' expects " + std::to_string(cmd->second.nargs) +
+      "Command '" + name + "' expects " + std::to_string(cmd->second.nargs) +
       " arguments but " + std::to_string(args.size()) + " given");
   }
   cmd->second.func(args);
