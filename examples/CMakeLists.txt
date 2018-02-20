@@ -1,4 +1,4 @@
-set(dfetools_examples namedtuple)
+set(dfetools_examples dispatcher namedtuple)
 
 foreach(_name ${dfetools_examples})
   set(_target "dfetools_example_${_name}")
