@@ -43,6 +43,9 @@ public:
   /// Call the command with some arguments.
   void call(const std::string& name, const std::vector<std::string>& args);
 
+  /// Return a list of all registered commands and required number of arguments.
+  std::vector<std::pair<std::string, std::size_t>> commands() const;
+
 private:
   struct Command {
     NativeInterface func;
@@ -114,8 +117,8 @@ struct WithArgumentDecoder {
       istr >> tmp;
     } catch (...) {
       throw std::invalid_argument(
-        "Could not convert value '" + str + "' to type '" +
-        typeid(T).name() + "'");
+        "Could not convert value '" + str + "' to type '" + typeid(T).name() +
+        "'");
     }
     return tmp;
   }
@@ -158,6 +161,17 @@ Dispatcher::call(const std::string& name, const std::vector<std::string>& args)
       " arguments but " + std::to_string(args.size()) + " given");
   }
   cmd->second.func(args);
+}
+
+std::vector<std::pair<std::string, std::size_t>>
+Dispatcher::commands() const
+{
+  std::vector<std::pair<std::string, std::size_t>> cmds;
+
+  for (const auto& cmd : m_commands) {
+    cmds.emplace_back(cmd.first, cmd.second.nargs);
+  }
+  return cmds;
 }
 
 } // namespace dfe
