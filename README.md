@@ -10,17 +10,23 @@ including them directly.
 Dispatcher
 ----------
 
-Register a variable number of commands with the dispatcher
+Register arbitrary commands with the dispatcher
 
     #include "dfe_dispatcher.hpp"
 
+    void func1(int x, double y, std::string z) { ... }
+    void func2(float a, unsigned it b) { ... }
+
     dfe::Dispatcher dispatchr;
+    dispatchr.add("a_function", func1);
+    dispatchr.add("another_function", func2);
 
-    dispatchr.add("a_function", ...);
+and call them by name with list of string arguments:
 
-and call it by name at a later point:
+    dispatchr.call("a_function", {"12", "0.23", "a message"});
+    dispatchr.call("another_function", {"3.14", "23"});
 
-    dispatchr.call("a_function", {"argument0", "argument1"});
+The string arguments are automatically converted to the correct type.
 
 Namedtuple
 ----------
