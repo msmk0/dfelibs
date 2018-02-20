@@ -36,15 +36,14 @@ public:
   /// `std::istream` formatted input operator `<<`.
   template<typename... Args>
   void add(std::string name, void (*free_func)(Args...));
+  template<typename T, typename... Args>
+  void add(std::string name, void (T::*member_func)(Args...), T& t);
   template<typename... Args>
   void add(std::string name, std::function<void(Args...)> func);
   /// Call the command with some arguments.
   void call(const std::string& name, const std::vector<std::string>& args);
 
 private:
-  template<typename... Args>
-  void add_impl(std::string name, std::function<void(Args...)> func);
-
   struct Command {
     NativeInterface func;
     std::size_t nargs;
@@ -70,6 +69,15 @@ inline void
 Dispatcher::add(std::string name, void (*free_func)(Args...))
 {
   add(std::move(name), std::function<void(Args...)>(free_func));
+}
+
+template<typename T, typename... Args>
+inline void
+Dispatcher::add(std::string name, void (T::*member_func)(Args...), T& t)
+{
+  add(
+    std::move(name),
+    std::function<void(Args...)>(std::bind(member_func, std::forward<T>(t))));
 }
 
 namespace dispatcher_impl {
