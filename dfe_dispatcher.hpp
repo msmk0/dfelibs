@@ -23,17 +23,28 @@ namespace dfe {
 
 /// A simple command dispatcher.
 ///
-/// You can register commands and call the by name using all-string arguments.
+/// You can register commands and call them by name using string arguments.
 class Dispatcher {
 public:
   using NativeInterface = std::function<void(const std::vector<std::string>&)>;
 
-  /// Register a commands that implements the native dispatcher call interface
+  /// Register a command that implements the native dispatcher call interface.
   void add(std::string name, NativeInterface func, std::size_t nargs);
-  /// Call the command with some arguments
+  /// Register a command with arbitrary arguments.
+  ///
+  /// All argument types must be constructible from `std::string` via the
+  /// `std::istream` formatted input operator `<<`.
+  template<typename... Args>
+  void add(std::string name, void (*free_func)(Args...));
+  template<typename... Args>
+  void add(std::string name, std::function<void(Args...)> func);
+  /// Call the command with some arguments.
   void call(const std::string& name, const std::vector<std::string>& args);
 
 private:
+  template<typename... Args>
+  void add_impl(std::string name, std::function<void(Args...)> func);
+
   struct Command {
     NativeInterface func;
     std::size_t nargs;
@@ -43,7 +54,7 @@ private:
 
 // implementations
 
-void
+inline void
 Dispatcher::add(
   std::string name, Dispatcher::NativeInterface func, std::size_t nargs)
 {
@@ -54,7 +65,72 @@ Dispatcher::add(
   m_commands[std::move(name)] = Command{func, nargs};
 }
 
-void
+template<typename... Args>
+inline void
+Dispatcher::add(std::string name, void (*free_func)(Args...))
+{
+  add(std::move(name), std::function<void(Args...)>(free_func));
+}
+
+namespace dispatcher_impl {
+namespace {
+
+// compile time index sequence
+// see e.g. http://loungecpp.net/cpp/indices-trick/
+template<std::size_t...>
+struct Sequence {
+};
+template<std::size_t N, std::size_t... INDICES>
+struct SequenceGenerator : SequenceGenerator<N - 1, N - 1, INDICES...> {
+};
+template<std::size_t... INDICES>
+struct SequenceGenerator<0, INDICES...> : Sequence<INDICES...> {
+};
+
+template<typename... Args>
+struct WithArgumentDecoder {
+  std::function<void(Args...)> func;
+
+  void operator()(const std::vector<std::string>& args)
+  {
+    decode_and_call(args, SequenceGenerator<sizeof...(Args)>());
+  }
+  template<typename T>
+  static T decode(const std::string& str)
+  {
+    std::istringstream istr(str);
+    // always throw on any error
+    istr.exceptions(std::istringstream::badbit | std::istringstream::failbit);
+    T tmp;
+    istr >> tmp;
+    return tmp;
+  }
+  template<std::size_t... I>
+  void decode_and_call(const std::vector<std::string>& args, Sequence<I...>)
+  {
+    func(decode<typename std::decay<Args>::type>(args.at(I))...);
+  }
+};
+
+template<typename... Args>
+Dispatcher::NativeInterface
+make_native_interface(std::function<void(Args...)>&& function)
+{
+  return WithArgumentDecoder<Args...>{std::move(function)};
+}
+
+} // namespace
+} // namespace dispatcher_impl
+
+template<typename... Args>
+inline void
+Dispatcher::add(std::string name, std::function<void(Args...)> func)
+{
+  m_commands[std::move(name)] = Command{
+    dispatcher_impl::make_native_interface(std::move(func)), sizeof...(Args)};
+}
+
+inline void
 Dispatcher::call(const std::string& name, const std::vector<std::string>& args)
 {
   auto cmd = m_commands.find(name);
