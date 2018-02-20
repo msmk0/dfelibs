@@ -106,11 +106,17 @@ struct WithArgumentDecoder {
   template<typename T>
   static T decode(const std::string& str)
   {
-    std::istringstream istr(str);
-    // always throw on any error
-    istr.exceptions(std::istringstream::badbit | std::istringstream::failbit);
     T tmp;
-    istr >> tmp;
+    try {
+      std::istringstream istr(str);
+      // always throw on any error
+      istr.exceptions(std::istringstream::badbit | std::istringstream::failbit);
+      istr >> tmp;
+    } catch (...) {
+      throw std::invalid_argument(
+        "Could not convert value '" + str + "' to type '" +
+        typeid(T).name() + "'");
+    }
     return tmp;
   }
   template<std::size_t... I>
