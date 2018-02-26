@@ -57,7 +57,7 @@ polynomial_eval_fixed(T x, Coefficients&&... coeffs)
     0 < sizeof...(Coefficients), "Need at at least one polynomial coefficient");
   using Common = typename std::common_type<Coefficients...>::type;
   using Array = std::array<Common, sizeof...(Coefficients)>;
-  return polynomial_eval(x, Array{coeffs...});
+  return polynomial_eval(x, Array{static_cast<Common>(coeffs)...});
 }
 
 } // namespace dfe
