@@ -63,3 +63,20 @@ or tabular text data
     ...
 
 or binary [npy](https://docs.scipy.org/doc/numpy/neps/npy-format.html) data.
+
+Poly
+----
+
+Evaluate polynomial functions using either a (variable-sized) container
+of coefficients
+
+    #include "dfe_poly.h"
+
+    std:vector<double> coeffs = {0.0, 2.0, 3.0, 4.0};
+    // evaluate f(x) = 2*x + 3*x^2 + 4*x^3 at x=-1.0
+    double y = dfe::polynomial_eval(-1.0, coeffs);
+
+or using the coefficients directly for fixed order polynomials:
+
+    // evaluate f(x) = 0.25 + x + 0.75*x^2 at x=0.5
+    double y = dfe::polynomial_eval_fixed(0.5, 0.25, 1.0, 0.75);
