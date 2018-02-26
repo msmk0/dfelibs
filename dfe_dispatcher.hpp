@@ -3,12 +3,10 @@
 // can do whatever you want with this stuff. If we meet some day, and you think
 // this stuff is worth it, you can buy me a beer in return.   Moritz Kiehn
 
-///
 /// \file
-/// \brief   command dispatcher that takes function names and string arguments
+/// \brief   Command dispatcher that takes function names and string arguments
 /// \author  Moritz Kiehn <msmk@cern.ch>
 /// \date    2018-02-20
-///
 
 #pragma once
 
@@ -32,8 +30,8 @@ public:
   void add(std::string name, NativeInterface func, std::size_t nargs);
   /// Register a command with arbitrary arguments.
   ///
-  /// All argument types must be constructible from `std::string` via the
-  /// `std::istream` formatted input operator `<<`.
+  /// All argument types must be constructible via the
+  /// `std::istream& operator>>(...)` formatted input operator.
   template<typename... Args>
   void add(std::string name, void (*free_func)(Args...));
   template<typename T, typename... Args>
