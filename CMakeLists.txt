@@ -9,6 +9,7 @@ endif()
 project(dfelibs LANGUAGES CXX)
 
 option(dfelibs_BUILD_EXAMPLES "Build examples" ${dfelibs_MASTER_PROJECT})
+option(dfelibs_BUILD_UNITTESTS "Build unit tests" ${dfelibs_MASTER_PROJECT})
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
@@ -21,4 +22,7 @@ target_include_directories(dfelibs INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 if(dfelibs_BUILD_EXAMPLES)
   add_subdirectory(examples)
 endif()
-
+if(dfelibs_BUILD_UNITTESTS)
+  enable_testing()
+  add_subdirectory(unittests)
+endif()
