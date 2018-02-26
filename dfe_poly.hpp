@@ -30,13 +30,14 @@ namespace dfe {
 ///
 template<typename T, typename Container>
 inline T
-polynomial_eval(T x, const Container& coeffs)
+polynomial_eval(const T& x, const Container& coeffs)
 {
   // Use Horner's method to evaluate polynomial
   // the rbegin/rend variants for reverse iteration are only available with
   // c++14. on c++11 we have to use the regular variants and reverse manually.
   // using begin/end allows us to support regular arrays and std containers.
-  T value = T(0);
+  T value = x; // make sure variable-sized types, e.g. std::valarray, work
+  value = 0;
   for (auto c = std::end(coeffs); c != std::begin(coeffs);) {
     c = std::prev(c);
     value *= x;
@@ -51,7 +52,7 @@ polynomial_eval(T x, const Container& coeffs)
 /// \param coeffs Coefficients in increasing order, i.e. c0, c1, c2, ... .
 template<typename T, typename... Coefficients>
 inline T
-polynomial_eval_fixed(T x, Coefficients&&... coeffs)
+polynomial_eval_fixed(const T& x, Coefficients&&... coeffs)
 {
   static_assert(
     0 < sizeof...(Coefficients), "Need at at least one polynomial coefficient");
