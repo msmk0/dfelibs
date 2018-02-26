@@ -3,12 +3,10 @@
 // can do whatever you want with this stuff. If we meet some day, and you think
 // this stuff is worth it, you can buy me a beer in return.   Moritz Kiehn
 
-///
 /// \file
 /// \brief   Efficient evaluation of polynomial functions
 /// \author  Moritz Kiehn <msmk@cern.ch>
 /// \date    2018-02-26
-///
 
 #include <array>
 #include <iterator>
