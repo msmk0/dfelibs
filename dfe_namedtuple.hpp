@@ -34,32 +34,13 @@
   } \
   friend std::ostream& operator<<(std::ostream& os, const name& x) \
   { \
-    return print_tuple( \
+    return ::dfe::namedtuple_impl::print_tuple( \
       os, x.to_tuple(), x.names(), \
       ::dfe::namedtuple_impl::SequenceGenerator<name::N>()); \
   }
 
 namespace dfe {
 namespace namedtuple_impl {
-
-// reverse macro stringification
-template<std::size_t N>
-inline std::array<std::string, N>
-unstringify_names(const char* str)
-{
-  std::array<std::string, N> out;
-  std::size_t idx = 0;
-  while (const char* mark = std::strchr(str, ',')) {
-    out[idx++].assign(str, mark - str);
-    // start next search after current mark
-    str = mark + 1;
-    // skip possible whitespace
-    str += std::strspn(str, " ");
-  }
-  out[idx].assign(str);
-  return out;
-}
-
 // compile time index sequence
 // see e.g. http://loungecpp.net/cpp/indices-trick/
 template<std::size_t...>
@@ -71,121 +52,6 @@ struct SequenceGenerator : SequenceGenerator<N - 1, N - 1, INDICES...> {
 template<std::size_t... INDICES>
 struct SequenceGenerator<0, INDICES...> : Sequence<INDICES...> {
 };
-
-// modified from http://stackoverflow.com/a/6245777
-template<typename Tuple, typename Names, std::size_t... I>
-inline std::ostream&
-print_tuple(std::ostream& os, const Tuple& t, const Names& n, Sequence<I...>)
-{
-  using swallow = int[];
-  int idx = 0;
-  (void)swallow{0, (void(
-                      os << ((0 < idx++) ? " " : "") << std::get<I>(n) << "="
-                         << std::get<I>(t)),
-                    0)...};
-  return os;
-}
-
-#if (__BYTE_ORDER == __LITTLE_ENDIAN) && (__FLOAT_WORD_ORDER == __BYTE_ORDER)
-#define DFE_DTYPE_CODE(c) "<" #c
-#elif (__BYTE_ORDER == __BIG_ENDIAN) && (__FLOAT_WORD_ORDER == __BYTE_ORDER)
-#define DTYPE_SIGNED_CODE(size) ">" #c
-#else
-#error Unsupported byte order
-#endif
-template<typename T>
-struct TypeInfo {
-};
-template<>
-struct TypeInfo<uint8_t> {
-  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(u1); }
-  static constexpr int text_width() { return 3; }
-};
-template<>
-struct TypeInfo<uint16_t> {
-  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(u2); }
-  static constexpr int text_width() { return 5; }
-};
-template<>
-struct TypeInfo<uint32_t> {
-  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(u4); }
-  static constexpr int text_width() { return 10; }
-};
-template<>
-struct TypeInfo<uint64_t> {
-  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(u8); }
-  static constexpr int text_width() { return 20; }
-};
-template<>
-struct TypeInfo<int8_t> {
-  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(i1); }
-  static constexpr int text_width() { return 4; }
-};
-template<>
-struct TypeInfo<int16_t> {
-  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(i2); }
-  static constexpr int text_width() { return 6; }
-};
-template<>
-struct TypeInfo<int32_t> {
-  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(i4); }
-  static constexpr int text_width() { return 11; }
-};
-template<>
-struct TypeInfo<int64_t> {
-  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(i8); }
-  static constexpr int text_width() { return 21; }
-};
-template<>
-struct TypeInfo<float> {
-  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(f4); }
-  static constexpr int text_width() { return 10; }
-};
-template<>
-struct TypeInfo<double> {
-  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(f8); }
-  static constexpr int text_width() { return 10; }
-};
-// not needed anymore. avoid cluttering the namespace
-#undef DFE_DTYPE_CODE
-
-template<typename... Types>
-inline std::array<const char*, sizeof...(Types)>
-dtypes_codes(const std::tuple<Types...>& t)
-{
-  return {TypeInfo<typename std::decay<Types>::type>::dtype_code()...};
-}
-
-template<typename T>
-inline std::string
-dtypes_description(const T& t)
-{
-  std::string descr;
-  std::size_t n = T::N;
-  auto names = t.names();
-  auto codes = dtypes_codes(t.to_tuple());
-  descr += '[';
-  for (decltype(n) i = 0; i < n; ++i) {
-    descr += "('";
-    descr += names[i];
-    descr += "', '";
-    descr += codes[i];
-    descr += "')";
-    if ((i + 1) < n) {
-      descr += ", ";
-    }
-  }
-  descr += ']';
-  return descr;
-}
-
-template<typename... Types>
-inline std::array<int, sizeof...(Types)>
-text_widths(const std::tuple<Types...>& t)
-{
-  return {TypeInfo<typename std::decay<Types>::type>::text_width()...};
-}
-
 } // namespace namedtuple_impl
 
 /// Write records as comma-separated values into a text file.
@@ -264,12 +130,150 @@ private:
   std::array<int, Namedtuple::N> m_widths;
 };
 
-} // namespace dfe
+// implementation details and common helpers
+
+namespace namedtuple_impl {
+namespace {
+
+// reverse macro stringification
+template<std::size_t N>
+inline std::array<std::string, N>
+unstringify_names(const char* str)
+{
+  std::array<std::string, N> out;
+  std::size_t idx = 0;
+  while (const char* mark = std::strchr(str, ',')) {
+    out[idx++].assign(str, mark - str);
+    // start next search after current mark
+    str = mark + 1;
+    // skip possible whitespace
+    str += std::strspn(str, " ");
+  }
+  out[idx].assign(str);
+  return out;
+}
+
+// modified from http://stackoverflow.com/a/6245777
+template<typename Tuple, typename Names, std::size_t... I>
+inline std::ostream&
+print_tuple(std::ostream& os, const Tuple& t, const Names& n, Sequence<I...>)
+{
+  using swallow = int[];
+  int idx = 0;
+  (void)swallow{0, (void(
+                      os << ((0 < idx++) ? " " : "") << std::get<I>(n) << "="
+                         << std::get<I>(t)),
+                    0)...};
+  return os;
+}
+
+#if (__BYTE_ORDER == __LITTLE_ENDIAN) && (__FLOAT_WORD_ORDER == __BYTE_ORDER)
+#define DFE_DTYPE_CODE(c) "<" #c
+#elif (__BYTE_ORDER == __BIG_ENDIAN) && (__FLOAT_WORD_ORDER == __BYTE_ORDER)
+#define DTYPE_SIGNED_CODE(size) ">" #c
+#else
+#error Unsupported byte order
+#endif
+template<typename T>
+struct TypeInfo {
+};
+template<>
+struct TypeInfo<uint8_t> {
+  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(u1); }
+  static constexpr int text_width() { return 3; }
+};
+template<>
+struct TypeInfo<uint16_t> {
+  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(u2); }
+  static constexpr int text_width() { return 5; }
+};
+template<>
+struct TypeInfo<uint32_t> {
+  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(u4); }
+  static constexpr int text_width() { return 10; }
+};
+template<>
+struct TypeInfo<uint64_t> {
+  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(u8); }
+  static constexpr int text_width() { return 20; }
+};
+template<>
+struct TypeInfo<int8_t> {
+  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(i1); }
+  static constexpr int text_width() { return 4; }
+};
+template<>
+struct TypeInfo<int16_t> {
+  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(i2); }
+  static constexpr int text_width() { return 6; }
+};
+template<>
+struct TypeInfo<int32_t> {
+  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(i4); }
+  static constexpr int text_width() { return 11; }
+};
+template<>
+struct TypeInfo<int64_t> {
+  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(i8); }
+  static constexpr int text_width() { return 21; }
+};
+template<>
+struct TypeInfo<float> {
+  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(f4); }
+  static constexpr int text_width() { return 10; }
+};
+template<>
+struct TypeInfo<double> {
+  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(f8); }
+  static constexpr int text_width() { return 10; }
+};
+// not needed after this point. undef to avoid cluttering the namespace
+#undef DFE_DTYPE_CODE
+
+template<typename... Types>
+inline std::array<const char*, sizeof...(Types)>
+dtypes_codes(const std::tuple<Types...>& t)
+{
+  return {TypeInfo<typename std::decay<Types>::type>::dtype_code()...};
+}
+
+template<typename T>
+inline std::string
+dtypes_description(const T& t)
+{
+  std::string descr;
+  std::size_t n = T::N;
+  auto names = t.names();
+  auto codes = dtypes_codes(t.to_tuple());
+  descr += '[';
+  for (decltype(n) i = 0; i < n; ++i) {
+    descr += "('";
+    descr += names[i];
+    descr += "', '";
+    descr += codes[i];
+    descr += "')";
+    if ((i + 1) < n) {
+      descr += ", ";
+    }
+  }
+  descr += ']';
+  return descr;
+}
+
+template<typename... Types>
+inline std::array<int, sizeof...(Types)>
+text_widths(const std::tuple<Types...>& t)
+{
+  return {TypeInfo<typename std::decay<Types>::type>::text_width()...};
+}
+
+} // namespace
+} // namespace namedtuple_impl
 
 // implementation csv writer
 
 template<typename Namedtuple>
-dfe::CsvNamedtupleWriter<Namedtuple>::CsvNamedtupleWriter(std::string path)
+inline CsvNamedtupleWriter<Namedtuple>::CsvNamedtupleWriter(std::string path)
 {
   // make our life easier. always throw on error
   m_file.exceptions(std::ofstream::badbit | std::ofstream::failbit);
@@ -281,16 +285,16 @@ dfe::CsvNamedtupleWriter<Namedtuple>::CsvNamedtupleWriter(std::string path)
 }
 
 template<typename Namedtuple>
-void
-dfe::CsvNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
+inline void
+CsvNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
 {
   write(record.to_tuple(), namedtuple_impl::SequenceGenerator<Namedtuple::N>());
 }
 
 template<typename Namedtuple>
 template<typename TupleLike, std::size_t... I>
-void
-dfe::CsvNamedtupleWriter<Namedtuple>::write(
+inline void
+CsvNamedtupleWriter<Namedtuple>::write(
   const TupleLike& values, namedtuple_impl::Sequence<I...>)
 {
   // this is a bit like magic, here is whats going on:
@@ -309,7 +313,7 @@ dfe::CsvNamedtupleWriter<Namedtuple>::write(
 // implementation npy writer
 
 template<typename Namedtuple>
-dfe::NpyNamedtupleWriter<Namedtuple>::NpyNamedtupleWriter(std::string path)
+inline NpyNamedtupleWriter<Namedtuple>::NpyNamedtupleWriter(std::string path)
   : m_fixed_header_length(0)
   , m_num_tuples(0)
 {
@@ -325,7 +329,7 @@ dfe::NpyNamedtupleWriter<Namedtuple>::NpyNamedtupleWriter(std::string path)
 }
 
 template<typename Namedtuple>
-dfe::NpyNamedtupleWriter<Namedtuple>::~NpyNamedtupleWriter()
+inline NpyNamedtupleWriter<Namedtuple>::~NpyNamedtupleWriter()
 {
   if (!m_file.is_open()) {
     return;
@@ -335,16 +339,16 @@ dfe::NpyNamedtupleWriter<Namedtuple>::~NpyNamedtupleWriter()
 }
 
 template<typename Namedtuple>
-void
-dfe::NpyNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
+inline void
+NpyNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
 {
   write(record.to_tuple(), namedtuple_impl::SequenceGenerator<Namedtuple::N>());
   m_num_tuples += 1;
 }
 
 template<typename Namedtuple>
-void
-dfe::NpyNamedtupleWriter<Namedtuple>::write_header(std::size_t num_tuples)
+inline void
+NpyNamedtupleWriter<Namedtuple>::write_header(std::size_t num_tuples)
 {
   std::string header;
   // magic
@@ -387,8 +391,8 @@ dfe::NpyNamedtupleWriter<Namedtuple>::write_header(std::size_t num_tuples)
 
 template<typename Namedtuple>
 template<typename TupleLike, std::size_t... I>
-void
-dfe::NpyNamedtupleWriter<Namedtuple>::write(
+inline void
+NpyNamedtupleWriter<Namedtuple>::write(
   const TupleLike& values, namedtuple_impl::Sequence<I...>)
 {
   // see write implementation in csv writer for explanation
@@ -402,7 +406,7 @@ dfe::NpyNamedtupleWriter<Namedtuple>::write(
 // implementation tabular writer
 
 template<typename Namedtuple>
-dfe::TabularNamedtupleWriter<Namedtuple>::TabularNamedtupleWriter(
+inline TabularNamedtupleWriter<Namedtuple>::TabularNamedtupleWriter(
   std::string path)
   : m_widths(namedtuple_impl::text_widths(Namedtuple().to_tuple()))
 {
@@ -420,16 +424,16 @@ dfe::TabularNamedtupleWriter<Namedtuple>::TabularNamedtupleWriter(
 }
 
 template<typename Namedtuple>
-void
-dfe::TabularNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
+inline void
+TabularNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
 {
   write(record.to_tuple(), namedtuple_impl::SequenceGenerator<Namedtuple::N>());
 }
 
 template<typename Namedtuple>
 template<typename TupleLike, std::size_t... I>
-void
-dfe::TabularNamedtupleWriter<Namedtuple>::write(
+inline void
+TabularNamedtupleWriter<Namedtuple>::write(
   const TupleLike& values, namedtuple_impl::Sequence<I...>)
 {
   // see csv implementation for detailed explanation of whats going on here
@@ -441,3 +445,5 @@ dfe::TabularNamedtupleWriter<Namedtuple>::write(
                     0)...};
   m_file << '\n';
 }
+
+} // namespace dfe
