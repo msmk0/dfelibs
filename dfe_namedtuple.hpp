@@ -3,13 +3,11 @@
 // can do whatever you want with this stuff. If we meet some day, and you think
 // this stuff is worth it, you can buy me a beer in return.   Moritz Kiehn
 
-///
 /// \file
-/// \brief   nametuples for data storage
+/// \brief   named tuples for data storage
 /// \author  Moritz Kiehn <msmk@cern.ch>
 /// \date    2015-06-00, Initial version
 /// \date    2018-02-09, Major rework
-///
 
 #pragma once
 
