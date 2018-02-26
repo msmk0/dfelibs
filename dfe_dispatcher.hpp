@@ -130,7 +130,7 @@ struct WithArgumentDecoder {
 };
 
 template<typename... Args>
-Dispatcher::NativeInterface
+inline Dispatcher::NativeInterface
 make_native_interface(std::function<void(Args...)>&& function)
 {
   return WithArgumentDecoder<Args...>{std::move(function)};
@@ -163,7 +163,7 @@ Dispatcher::call(const std::string& name, const std::vector<std::string>& args)
   cmd->second.func(args);
 }
 
-std::vector<std::pair<std::string, std::size_t>>
+inline std::vector<std::pair<std::string, std::size_t>>
 Dispatcher::commands() const
 {
   std::vector<std::pair<std::string, std::size_t>> cmds;
