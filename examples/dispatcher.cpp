@@ -7,35 +7,44 @@
 
 #include <dfe_dispatcher.hpp>
 
-void
-func1(int x, double f)
-{
-  std::cout << "func1: x=" << x << " f=" << f << '\n';
-}
+// example functions
 
 void
-func2(std::string name)
+func_noreturn(int x, double f)
 {
-  std::cout << "func2: name=" << name << '\n';
+  std::cout << "free function w/o return: x=" << x << " f=" << f << '\n';
 }
 
-void
-func3(const std::vector<std::string>& args)
+double
+func_return(int x, double f)
 {
-  std::cout << "func3:";
+  std::cout << "free function w/ return: x=" << x << " f=" << f << '\n';
+  return x + f;
+}
+
+std::string
+func_native(const std::vector<std::string>& args)
+{
+  std::cout << "native w/ " << args.size() << " arguments\n";
+  std::string ret;
   for (const auto& arg : args) {
-    std::cout << " " << arg;
+    ret += arg;
   }
-  std::cout << '\n';
+  return ret;
 }
 
-struct WithFunction {
-  float v;
+struct WithFunctions {
+  float x;
 
-  void func() { std::cout << "WithFunction::do: " << v << std::endl; }
-  static void other(int y)
+  float member_add(float y)
   {
-    std::cout << "WithFunction::other: " << y << std::endl;
+    std::cout << "member add x=" << x << " y=" << y << '\n';
+    return x + y;
+  }
+  static float static_add(float a, float b)
+  {
+    std::cout << "static add a=" << a << " b=" << b << '\n';
+    return a + b;
   }
 };
 
@@ -44,74 +53,29 @@ main(int argc, char* argv[])
 {
   dfe::Dispatcher dispatchr;
 
-  // regular free functions
+  // add functions to dispatcher
+  dispatchr.add("noreturn", func_noreturn);
+  dispatchr.add("return", func_return);
+  dispatchr.add("native1", func_native, 1); // with 1 argument
+  dispatchr.add("native3", func_native, 3); // with 3 arguments
+  WithFunctions adder = {5.5};
+  dispatchr.add("member_add", &WithFunctions::member_add, &adder);
+  dispatchr.add("static_add", WithFunctions::static_add);
 
-  dispatchr.add("cmd1", func1);
-  dispatchr.add(
-    "cmd1_1",
-    std::function<void(double)>(std::bind(func1, -1, std::placeholders::_1)));
-  dispatchr.add("cmd2", func2);
-
-  dispatchr.call("cmd1", {"1", "1.24"});
-  dispatchr.call("cmd1", {"16", "0.125"});
-  dispatchr.call("cmd1_1", {"2.22"});
-  dispatchr.call("cmd2", {"something"});
-  dispatchr.call("cmd2", {"nothing"});
-  // an argument is not convertible to the right type
-  try {
-    dispatchr.call("cmd1", {"x", "123"});
-  } catch (const std::exception& e) {
-    std::cout << e.what() << std::endl;
-  }
-  try {
-    dispatchr.call("cmd1", {"12", "x"});
-  } catch (const std::exception& e) {
-    std::cout << e.what() << std::endl;
-  }
-
-  // register class member functions
-
-  WithFunction w1 = {3.14f};
-  WithFunction w2 = {2.31f};
-  dispatchr.add("w1_func", &WithFunction::func, w1);
-  dispatchr.add("w2_func", &WithFunction::func, w2);
-  dispatchr.add("w_static_func", &WithFunction::other);
-  dispatchr.call("w1_func", {});
-  dispatchr.call("w2_func", {});
-  dispatchr.call("w_static_func", {"27"});
-
-  // functions that implement the native dispatcher interface
-
-  // register the same function with two different number of arguments
-  dispatchr.add("do3_1", func3, 1);
-  dispatchr.add("do3_3", func3, 3);
-  // fails since the name was already registered
-  try {
-    dispatchr.add("do3_3", func3, 2);
-  } catch (const std::exception& e) {
-    std::cout << e.what() << std::endl;
-  }
-
-  dispatchr.call("do3_1", {"single arg"});
-  dispatchr.call("do3_1", {"another single arg"});
-  dispatchr.call("do3_3", {"three args", "blub", "blaI"});
-  // fails because the function does not exists
-  try {
-    dispatchr.call("missing", {});
-  } catch (const std::exception& e) {
-    std::cout << e.what() << std::endl;
-  }
-  // fails because we have the wrong number of argumetns
-  try {
-    dispatchr.call("do3_1", {"one", "too many"});
-  } catch (const std::exception& e) {
-    std::cout << e.what() << std::endl;
-  }
-
+  // list registered functions
   std::cout << "registered commands:\n";
   for (const auto cmd : dispatchr.commands()) {
     std::cout << "  " << cmd.first << "(" << cmd.second << ")\n";
   }
+
+  // call functions by name
+  std::cout << dispatchr.call("noreturn", {"1", "1.24"}) << '\n';
+  std::cout << dispatchr.call("return", {"1", "1.24"}) << '\n';
+  std::cout << dispatchr.call("native1", {"x"}) << '\n';
+  std::cout << dispatchr.call("native3", {"x", "y", "z"}) << '\n';
+  std::cout << dispatchr.call("native3", {"x", "y", "z"}) << '\n';
+  std::cout << dispatchr.call("member_add", {"1.2"}) << '\n';
+  std::cout << dispatchr.call("static_add", {"4.2", "2.3"}) << '\n';
 
   return EXIT_SUCCESS;
 }
