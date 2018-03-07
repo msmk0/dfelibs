@@ -24,24 +24,30 @@ namespace dfe {
 /// You can register commands and call them by name using string arguments.
 class Dispatcher {
 public:
-  using NativeInterface = std::function<void(const std::vector<std::string>&)>;
+  /// Internally functions take variable string arguments and return a string.
+  using NativeInterface =
+    std::function<std::string(const std::vector<std::string>&)>;
 
   /// Register a command that implements the native dispatcher call interface.
   void add(std::string name, NativeInterface func, std::size_t nargs);
   /// Register a command with arbitrary arguments.
   ///
   /// All argument types must be constructible via the
-  /// `std::istream& operator>>(...)` formatted input operator.
-  template<typename... Args>
-  void add(std::string name, void (*free_func)(Args...));
-  template<typename T, typename... Args>
-  void add(std::string name, void (T::*member_func)(Args...), T& t);
-  template<typename... Args>
-  void add(std::string name, std::function<void(Args...)> func);
-  /// Call the command with some arguments.
-  void call(const std::string& name, const std::vector<std::string>& args);
+  /// `std::istream& operator>>(...)` formatted input operator and the return
+  /// type must be support the `std::ostream& operator<<(...)` formatted output
+  /// operator.
+  template<typename R, typename... Args>
+  void add(std::string name, std::function<R(Args...)> func);
+  template<typename R, typename... Args>
+  void add(std::string name, R (*func)(Args...));
+  template<typename T, typename R, typename... Args>
+  void add(std::string name, R (T::*member_func)(Args...), T& t);
 
-  /// Return a list of all registered commands and required number of arguments.
+  /// Call a command with some arguments.
+  std::string call(
+    const std::string& name, const std::vector<std::string>& args);
+
+  /// Return a list of registered commands and required number of arguments.
   std::vector<std::pair<std::string, std::size_t>> commands() const;
 
 private:
@@ -68,22 +74,6 @@ Dispatcher::add(
   m_commands[std::move(name)] = Command{func, nargs};
 }
 
-template<typename... Args>
-inline void
-Dispatcher::add(std::string name, void (*free_func)(Args...))
-{
-  add(std::move(name), std::function<void(Args...)>(free_func));
-}
-
-template<typename T, typename... Args>
-inline void
-Dispatcher::add(std::string name, void (T::*member_func)(Args...), T& t)
-{
-  add(
-    std::move(name),
-    std::function<void(Args...)>(std::bind(member_func, std::forward<T>(t))));
-}
-
 namespace dispatcher_impl {
 namespace {
 
@@ -99,56 +89,112 @@ template<std::size_t... INDICES>
 struct SequenceGenerator<0, INDICES...> : Sequence<INDICES...> {
 };
 
-template<typename... Args>
-struct WithArgumentDecoder {
-  std::function<void(Args...)> func;
-
-  void operator()(const std::vector<std::string>& args)
-  {
-    decode_and_call(args, SequenceGenerator<sizeof...(Args)>());
+template<typename T>
+inline T
+str_decode(const std::string& str)
+{
+  T tmp;
+  std::istringstream is(str);
+  is >> tmp;
+  if (is.fail()) {
+    std::string msg;
+    msg += "Could not convert value '";
+    msg += str;
+    msg += "' to type '";
+    msg += typeid(T).name();
+    msg += "'";
+    throw std::invalid_argument(std::move(msg));
   }
-  template<typename T>
-  static T decode(const std::string& str)
+  return tmp;
+}
+
+template<typename T>
+inline std::string
+str_encode(const T& value)
+{
+  std::ostringstream os;
+  os << value;
+  if (os.fail()) {
+    std::string msg;
+    msg += "Could not convert type '";
+    msg += typeid(T).name();
+    msg += "' to std::string";
+    throw std::invalid_argument(std::move(msg));
+  }
+  return os.str();
+}
+
+// Wrap a function that returns a value
+template<typename R, typename... Args>
+struct NativeInterfaceWrappper {
+  std::function<R(Args...)> func;
+
+  std::string operator()(const std::vector<std::string>& args)
   {
-    T tmp;
-    try {
-      std::istringstream istr(str);
-      // always throw on any error
-      istr.exceptions(std::istringstream::badbit | std::istringstream::failbit);
-      istr >> tmp;
-    } catch (...) {
-      throw std::invalid_argument(
-        "Could not convert value '" + str + "' to type '" + typeid(T).name() +
-        "'");
-    }
-    return tmp;
+    return decode_and_call(args, SequenceGenerator<sizeof...(Args)>());
   }
   template<std::size_t... I>
-  void decode_and_call(const std::vector<std::string>& args, Sequence<I...>)
+  std::string decode_and_call(
+    const std::vector<std::string>& args, Sequence<I...>)
   {
-    func(decode<typename std::decay<Args>::type>(args.at(I))...);
+    return str_encode(
+      func(str_decode<typename std::decay<Args>::type>(args.at(I))...));
   }
 };
 
+// Wrap a function that does not return anything
 template<typename... Args>
+struct NativeInterfaceWrappper<void, Args...> {
+  std::function<void(Args...)> func;
+
+  std::string operator()(const std::vector<std::string>& args)
+  {
+    return decode_and_call(args, SequenceGenerator<sizeof...(Args)>());
+  }
+  template<std::size_t... I>
+  std::string decode_and_call(
+    const std::vector<std::string>& args, Sequence<I...>)
+  {
+    func(str_decode<typename std::decay<Args>::type>(args.at(I))...);
+    return std::string();
+  }
+};
+
+template<typename R, typename... Args>
 inline Dispatcher::NativeInterface
-make_native_interface(std::function<void(Args...)>&& function)
+make_native_interface(std::function<R(Args...)>&& function)
 {
-  return WithArgumentDecoder<Args...>{std::move(function)};
+  return NativeInterfaceWrappper<R, Args...>{std::move(function)};
 }
 
 } // namespace
 } // namespace dispatcher_impl
 
-template<typename... Args>
+template<typename R, typename... Args>
 inline void
-Dispatcher::add(std::string name, std::function<void(Args...)> func)
+Dispatcher::add(std::string name, std::function<R(Args...)> func)
 {
   m_commands[std::move(name)] = Command{
     dispatcher_impl::make_native_interface(std::move(func)), sizeof...(Args)};
 }
 
+template<typename R, typename... Args>
 inline void
+Dispatcher::add(std::string name, R (*func)(Args...))
+{
+  add(std::move(name), std::function<R(Args...)>(func));
+}
+
+template<typename T, typename R, typename... Args>
+inline void
+Dispatcher::add(std::string name, R (T::*member_func)(Args...), T& t)
+{
+  add(
+    std::move(name),
+    std::function<R(Args...)>(std::bind(member_func, std::forward<T>(t))));
+}
+
+inline std::string
 Dispatcher::call(const std::string& name, const std::vector<std::string>& args)
 {
   auto cmd = m_commands.find(name);
@@ -156,12 +202,11 @@ Dispatcher::call(const std::string& name, const std::vector<std::string>& args)
     throw std::invalid_argument("Unknown command '" + name + "'");
   }
   if (args.size() != cmd->second.nargs) {
-    std::string msg;
     throw std::invalid_argument(
       "Command '" + name + "' expects " + std::to_string(cmd->second.nargs) +
       " arguments but " + std::to_string(args.size()) + " given");
   }
-  cmd->second.func(args);
+  return cmd->second.func(args);
 }
 
 inline std::vector<std::pair<std::string, std::size_t>>
