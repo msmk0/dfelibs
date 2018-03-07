@@ -58,6 +58,9 @@ inline void
 Dispatcher::add(
   std::string name, Dispatcher::NativeInterface func, std::size_t nargs)
 {
+  if (name.empty()) {
+    throw std::invalid_argument("Can not register command with empty name");
+  }
   if (m_commands.count(name)) {
     throw std::invalid_argument(
       "Can not register command '" + name + "' more than once");
