@@ -1,7 +1,7 @@
 # minimal version that provides test v3
 find_package(Boost 1.59 REQUIRED COMPONENTS unit_test_framework)
 
-set(unittests poly)
+set(unittests dispatcher poly)
 
 foreach(_name ${unittests})
   set(_target "${PROJECT_NAME}_test_${_name}")
