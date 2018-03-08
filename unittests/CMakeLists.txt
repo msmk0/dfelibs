@@ -5,7 +5,7 @@ set(unittests dispatcher poly)
 
 foreach(_name ${unittests})
   set(_target "${PROJECT_NAME}_test_${_name}")
-  add_executable(${_target} "${_name}.cpp")
+  add_executable(${_target} "test_${_name}.cpp")
   target_compile_definitions(${_target} PRIVATE BOOST_TEST_MODULE="${_name}")
   target_compile_definitions(${_target} PRIVATE BOOST_TEST_DYN_LINK=1)
   target_include_directories(${_target} PRIVATE ${Boost_INCLUDE_DIR})
