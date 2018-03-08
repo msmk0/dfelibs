@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <cassert>
 #include <functional>
 #include <sstream>
 #include <stdexcept>
@@ -41,7 +42,7 @@ public:
   template<typename R, typename... Args>
   void add(std::string name, R (*func)(Args...));
   template<typename T, typename R, typename... Args>
-  void add(std::string name, R (T::*member_func)(Args...), T& t);
+  void add(std::string name, R (T::*member_func)(Args...), T* t);
 
   /// Call a command with some arguments.
   std::string call(
@@ -182,16 +183,19 @@ template<typename R, typename... Args>
 inline void
 Dispatcher::add(std::string name, R (*func)(Args...))
 {
+  assert(func && "Function pointer must be non-null");
   add(std::move(name), std::function<R(Args...)>(func));
 }
 
 template<typename T, typename R, typename... Args>
 inline void
-Dispatcher::add(std::string name, R (T::*member_func)(Args...), T& t)
+Dispatcher::add(std::string name, R (T::*member_func)(Args...), T* t)
 {
-  add(
-    std::move(name),
-    std::function<R(Args...)>(std::bind(member_func, std::forward<T>(t))));
+  assert(member_func && "Member function pointer must be non-null");
+  assert(t && "Object pointer must be non-null");
+  add(std::move(name), std::function<R(Args...)>([=](Args... args) {
+        return (t->*member_func)(args...);
+      }));
 }
 
 inline std::string
