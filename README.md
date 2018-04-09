@@ -19,19 +19,23 @@ Dispatcher
 
 Register arbitrary commands with the dispatcher
 
-    #include "dfe_dispatcher.hpp"
+```cpp
+#include "dfe_dispatcher.hpp"
 
-    void func1(int x, double y, std::string z) { ... }
-    void func2(float a, unsigned it b) { ... }
+void func1(int x, double y, std::string z) { ... }
+void func2(float a, unsigned it b) { ... }
 
-    dfe::Dispatcher dispatchr;
-    dispatchr.add("a_function", func1);
-    dispatchr.add("another_function", func2);
+dfe::Dispatcher dispatchr;
+dispatchr.add("a_function", func1);
+dispatchr.add("another_function", func2);
+```
 
 and call them by name with a list of string arguments:
 
-    dispatchr.call("a_function", {"12", "0.23", "a message"});
-    dispatchr.call("another_function", {"3.14", "23"});
+```cpp
+dispatchr.call("a_function", {"12", "0.23", "a message"});
+dispatchr.call("another_function", {"3.14", "23"});
+```
 
 The string arguments are automatically converted to the correct type.
 
@@ -40,22 +44,26 @@ Namedtuple
 
 Add some self-awareness to a POD type
 
-    #include "dfe_namedtuple.hpp"
+```cpp
+#include "dfe_namedtuple.hpp"
 
-    struct Record {
-      uint32_t x;
-      float b;
-      int16_t z;
-      DFE_NAMEDTUPLE(Record, x, b, z);
-    }
+struct Record {
+  uint32_t x;
+  float b;
+  int16_t z;
+  DFE_NAMEDTUPLE(Record, x, b, z);
+}
+```
 
 and write it to disk in multiple formats:
 
-    dfe::CsvNamedtupleWriter csv("records.csv"); // or
-    dfe::NpyNamedtupleWriter npy("records.npy"); // or
-    dfe::TabularNamedtupleWriter tab("records.txt");
+```cpp
+dfe::CsvNamedtupleWriter csv("records.csv"); // or
+dfe::NpyNamedtupleWriter npy("records.npy"); // or
+dfe::TabularNamedtupleWriter tab("records.txt");
 
-    csv.append(Record{1, 1.4, -2}); // same call for other writers
+csv.append(Record{1, 1.4, -2}); // same call for other writers
+```
 
 The results are either comma-separated values
 
@@ -77,16 +85,20 @@ Poly
 Evaluate polynomial functions using either a (variable-sized) container
 of coefficients
 
-    #include "dfe_poly.h"
+```cpp
+#include "dfe_poly.h"
 
-    std:vector<double> coeffs = {0.0, 2.0, 3.0, 4.0};
-    // evaluate f(x) = 2*x + 3*x^2 + 4*x^3 at x=-1.0
-    double y = dfe::polynomial_eval(-1.0, coeffs);
+std:vector<double> coeffs = {0.0, 2.0, 3.0, 4.0};
+// evaluate f(x) = 2*x + 3*x^2 + 4*x^3 at x=-1.0
+double y = dfe::polynomial_eval(-1.0, coeffs);
+```
 
 or using the coefficients directly for fixed order polynomials:
 
-    // evaluate f(x) = 0.25 + x + 0.75*x^2 at x=0.5
-    double y = dfe::polynomial_eval_fixed(0.5, 0.25, 1.0, 0.75);
+```cpp
+// evaluate f(x) = 0.25 + x + 0.75*x^2 at x=0.5
+double y = dfe::polynomial_eval_fixed(0.5, 0.25, 1.0, 0.75);
+```
 
 
 [cmake]: https://www.cmake.org
