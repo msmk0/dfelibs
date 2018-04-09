@@ -97,7 +97,7 @@ or using the coefficients directly for fixed order polynomials:
 
 ```cpp
 // evaluate f(x) = 0.25 + x + 0.75*x^2 at x=0.5
-double y = dfe::polynomial_eval_fixed(0.5, 0.25, 1.0, 0.75);
+float y = dfe::polynomial_eval_fixed(0.5f, 0.25f, 1.0f, 0.75f);
 ```
 
 
