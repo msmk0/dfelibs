@@ -2,10 +2,17 @@ Dr. Fred Edison's incredible useful C++11 libraries
 ===================================================
 May contain traces of industrial strength snake oil
 
-This is a set of small single-header libraries. If not mentioned
-otherwise they only need a C++11 compatible compiler. They require no
-installation and can be used by copying them into your own projects and
-including them directly.
+This is a set of small single-header libraries. They require no installation
+and only need a C++11 compatible compiler. To use any of them just copy the
+header file into your own project and include it where needed.
+If you are using the [CMake][cmake] build system you can also add the full
+project as a subdirectory and use any of the libraries by linking with
+the `dfelibs` target, i.e.
+
+    add_subdirectory(<path/to/dfelibs/folder>)
+    ...
+    target_link_library(<your/project/target> dfelibs)
+
 
 Dispatcher
 ----------
@@ -21,7 +28,7 @@ Register arbitrary commands with the dispatcher
     dispatchr.add("a_function", func1);
     dispatchr.add("another_function", func2);
 
-and call them by name with list of string arguments:
+and call them by name with a list of string arguments:
 
     dispatchr.call("a_function", {"12", "0.23", "a message"});
     dispatchr.call("another_function", {"3.14", "23"});
@@ -62,7 +69,7 @@ or tabular text data
     1     1.4   -2
     ...
 
-or binary [npy](https://docs.scipy.org/doc/numpy/neps/npy-format.html) data.
+or binary [NPY][npy] data.
 
 Poly
 ----
@@ -80,3 +87,7 @@ or using the coefficients directly for fixed order polynomials:
 
     // evaluate f(x) = 0.25 + x + 0.75*x^2 at x=0.5
     double y = dfe::polynomial_eval_fixed(0.5, 0.25, 1.0, 0.75);
+
+
+[cmake]: https://www.cmake.org
+[npy]: https://docs.scipy.org/doc/numpy/neps/npy-format.html
