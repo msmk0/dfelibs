@@ -92,6 +92,30 @@ private:
   std::ofstream m_file;
 };
 
+/// Write records as a space-separated table into a text file.
+template<typename Namedtuple>
+class TabularNamedtupleWriter {
+public:
+  TabularNamedtupleWriter() = delete;
+  TabularNamedtupleWriter(const TabularNamedtupleWriter&) = delete;
+  TabularNamedtupleWriter& operator=(const TabularNamedtupleWriter&) = delete;
+  TabularNamedtupleWriter(TabularNamedtupleWriter&&) = default;
+  TabularNamedtupleWriter& operator=(TabularNamedtupleWriter&&) = default;
+  ~TabularNamedtupleWriter() = default;
+  /// Create a tabular text file at the given path. Overwrites existing data.
+  TabularNamedtupleWriter(std::string path);
+
+  /// Append a record to the end of the file.
+  void append(const Namedtuple& record);
+
+private:
+  template<typename TupleLike, std::size_t... I>
+  void write(const TupleLike& values, namedtuple_impl::Sequence<I...>);
+
+  std::ofstream m_file;
+  std::array<int, Namedtuple::N> m_widths;
+};
+
 /// Write records into a binary NumPy-compatible `.npy` file.
 ///
 /// See https://docs.scipy.org/doc/numpy/neps/npy-format.html for a detailed
@@ -121,31 +145,7 @@ private:
   std::size_t m_num_tuples;
 };
 
-/// Write records as a space-separated table into a text file.
-template<typename Namedtuple>
-class TabularNamedtupleWriter {
-public:
-  TabularNamedtupleWriter() = delete;
-  TabularNamedtupleWriter(const TabularNamedtupleWriter&) = delete;
-  TabularNamedtupleWriter& operator=(const TabularNamedtupleWriter&) = delete;
-  TabularNamedtupleWriter(TabularNamedtupleWriter&&) = default;
-  TabularNamedtupleWriter& operator=(TabularNamedtupleWriter&&) = default;
-  ~TabularNamedtupleWriter() = default;
-  /// Create a tabular text file at the given path. Overwrites existing data.
-  TabularNamedtupleWriter(std::string path);
-
-  /// Append a record to the end of the file.
-  void append(const Namedtuple& record);
-
-private:
-  template<typename TupleLike, std::size_t... I>
-  void write(const TupleLike& values, namedtuple_impl::Sequence<I...>);
-
-  std::ofstream m_file;
-  std::array<int, Namedtuple::N> m_widths;
-};
-
-// implementation details and common helpers
+// common helpers
 
 namespace namedtuple_impl {
 namespace {
@@ -245,43 +245,6 @@ struct TypeInfo<double> {
 // not needed after this point. undef to avoid cluttering the namespace
 #undef DFE_DTYPE_CODE
 
-template<typename... Types>
-inline std::array<const char*, sizeof...(Types)>
-dtypes_codes(const std::tuple<Types...>& t)
-{
-  return {TypeInfo<typename std::decay<Types>::type>::dtype_code()...};
-}
-
-template<typename T>
-inline std::string
-dtypes_description(const T& t)
-{
-  std::string descr;
-  std::size_t n = T::N;
-  auto names = t.names();
-  auto codes = dtypes_codes(t.to_tuple());
-  descr += '[';
-  for (decltype(n) i = 0; i < n; ++i) {
-    descr += "('";
-    descr += names[i];
-    descr += "', '";
-    descr += codes[i];
-    descr += "')";
-    if ((i + 1) < n) {
-      descr += ", ";
-    }
-  }
-  descr += ']';
-  return descr;
-}
-
-template<typename... Types>
-inline std::array<int, sizeof...(Types)>
-text_widths(const std::tuple<Types...>& t)
-{
-  return {TypeInfo<typename std::decay<Types>::type>::text_width()...};
-}
-
 } // namespace
 } // namespace namedtuple_impl
 
@@ -325,100 +288,20 @@ CsvNamedtupleWriter<Namedtuple>::write(
   m_file << '\n';
 }
 
-// implementation npy writer
-
-template<typename Namedtuple>
-inline NpyNamedtupleWriter<Namedtuple>::NpyNamedtupleWriter(std::string path)
-  : m_fixed_header_length(0)
-  , m_num_tuples(0)
-{
-  // make our life easier. always throw on error
-  m_file.exceptions(std::ofstream::badbit | std::ofstream::failbit);
-  m_file.open(
-    path, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
-  // write a header that uses the maximum amount of space, i.e. biggest
-  // possible number of ntuples, so that we have enough space when we
-  // overwrite it w/ the actual number of tuples at closing time.
-  write_header(SIZE_MAX);
-  write_header(0);
-}
-
-template<typename Namedtuple>
-inline NpyNamedtupleWriter<Namedtuple>::~NpyNamedtupleWriter()
-{
-  if (!m_file.is_open()) {
-    return;
-  }
-  write_header(m_num_tuples);
-  m_file.close();
-}
-
-template<typename Namedtuple>
-inline void
-NpyNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
-{
-  write(record.to_tuple(), namedtuple_impl::SequenceGenerator<Namedtuple::N>());
-  m_num_tuples += 1;
-}
-
-template<typename Namedtuple>
-inline void
-NpyNamedtupleWriter<Namedtuple>::write_header(std::size_t num_tuples)
-{
-  std::string header;
-  // magic
-  header += "\x93NUMPY";
-  // fixed version number (major, minor)
-  header += static_cast<char>(0x1);
-  header += static_cast<char>(0x0);
-  // placeholder value for the header length (2byte little end. unsigned)
-  header += static_cast<char>(0xAF);
-  header += static_cast<char>(0xFE);
-  // python dict w/ data type and size information
-  header += '{';
-  header +=
-    "'descr': " + namedtuple_impl::dtypes_description(Namedtuple()) + ", ";
-  header += "'fortran_order': False, ";
-  header += "'shape': (" + std::to_string(num_tuples) + ",), ";
-  header += '}';
-  // padd w/ spaces for 16 byte alignment of the whole header
-  while (((header.size() + 1) % 16) != 0) {
-    header += ' ';
-  }
-  // the initial header fixes the available header size. updated headers
-  // must always occupy the same space and might require additional
-  // padding spaces
-  if (m_fixed_header_length == 0) {
-    m_fixed_header_length = header.size();
-  } else {
-    while (header.size() < m_fixed_header_length) {
-      header += ' ';
-    }
-  }
-  header += '\n';
-  // replace the header length place holder
-  std::size_t header_length = header.size() - 10;
-  header[8] = static_cast<char>(header_length >> 0);
-  header[9] = static_cast<char>(header_length >> 8);
-  m_file.seekp(0);
-  m_file.write(header.data(), header.size());
-}
-
-template<typename Namedtuple>
-template<typename TupleLike, std::size_t... I>
-inline void
-NpyNamedtupleWriter<Namedtuple>::write(
-  const TupleLike& values, namedtuple_impl::Sequence<I...>)
-{
-  // see write implementation in csv writer for explanation
-  using swallow = int[];
-  (void)swallow{0, (void(m_file.write(
-                      reinterpret_cast<const char*>(&std::get<I>(values)),
-                      sizeof(typename std::tuple_element<I, TupleLike>::type))),
-                    0)...};
-}
-
 // implementation tabular writer
+
+namespace namedtuple_impl {
+namespace {
+
+template<typename... Types>
+inline std::array<int, sizeof...(Types)>
+text_widths(const std::tuple<Types...>& t)
+{
+  return {TypeInfo<typename std::decay<Types>::type>::text_width()...};
+}
+
+} // namespace
+} // namespace namedtuple_impl
 
 template<typename Namedtuple>
 inline TabularNamedtupleWriter<Namedtuple>::TabularNamedtupleWriter(
@@ -459,6 +342,127 @@ TabularNamedtupleWriter<Namedtuple>::write(
                              << std::setw(m_widths[I]) << std::get<I>(values)),
                     0)...};
   m_file << '\n';
+}
+
+// implementation npy writer
+
+namespace namedtuple_impl {
+namespace {
+
+template<typename... Types>
+inline std::array<const char*, sizeof...(Types)>
+dtypes_codes(const std::tuple<Types...>& t)
+{
+  return {TypeInfo<typename std::decay<Types>::type>::dtype_code()...};
+}
+
+template<typename T>
+inline std::string
+dtypes_description(const T& t)
+{
+  std::string descr;
+  std::size_t n = T::N;
+  auto names = t.names();
+  auto codes = dtypes_codes(t.to_tuple());
+  descr += '[';
+  for (decltype(n) i = 0; i < n; ++i) {
+    descr += "('";
+    descr += names[i];
+    descr += "', '";
+    descr += codes[i];
+    descr += "')";
+    if ((i + 1) < n) { descr += ", "; }
+  }
+  descr += ']';
+  return descr;
+}
+
+} // namespace
+} // namespace namedtuple_impl
+
+template<typename Namedtuple>
+inline NpyNamedtupleWriter<Namedtuple>::NpyNamedtupleWriter(std::string path)
+  : m_fixed_header_length(0)
+  , m_num_tuples(0)
+{
+  // make our life easier. always throw on error
+  m_file.exceptions(std::ofstream::badbit | std::ofstream::failbit);
+  m_file.open(
+    path, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
+  // write a header that uses the maximum amount of space, i.e. biggest
+  // possible number of ntuples, so that we have enough space when we
+  // overwrite it w/ the actual number of tuples at closing time.
+  write_header(SIZE_MAX);
+  write_header(0);
+}
+
+template<typename Namedtuple>
+inline NpyNamedtupleWriter<Namedtuple>::~NpyNamedtupleWriter()
+{
+  if (!m_file.is_open()) { return; }
+  write_header(m_num_tuples);
+  m_file.close();
+}
+
+template<typename Namedtuple>
+inline void
+NpyNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
+{
+  write(record.to_tuple(), namedtuple_impl::SequenceGenerator<Namedtuple::N>());
+  m_num_tuples += 1;
+}
+
+template<typename Namedtuple>
+inline void
+NpyNamedtupleWriter<Namedtuple>::write_header(std::size_t num_tuples)
+{
+  std::string header;
+  // magic
+  header += "\x93NUMPY";
+  // fixed version number (major, minor)
+  header += static_cast<char>(0x1);
+  header += static_cast<char>(0x0);
+  // placeholder value for the header length (2byte little end. unsigned)
+  header += static_cast<char>(0xAF);
+  header += static_cast<char>(0xFE);
+  // python dict w/ data type and size information
+  header += '{';
+  header +=
+    "'descr': " + namedtuple_impl::dtypes_description(Namedtuple()) + ", ";
+  header += "'fortran_order': False, ";
+  header += "'shape': (" + std::to_string(num_tuples) + ",), ";
+  header += '}';
+  // padd w/ spaces for 16 byte alignment of the whole header
+  while (((header.size() + 1) % 16) != 0) { header += ' '; }
+  // the initial header fixes the available header size. updated headers
+  // must always occupy the same space and might require additional
+  // padding spaces
+  if (m_fixed_header_length == 0) {
+    m_fixed_header_length = header.size();
+  } else {
+    while (header.size() < m_fixed_header_length) { header += ' '; }
+  }
+  header += '\n';
+  // replace the header length place holder
+  std::size_t header_length = header.size() - 10;
+  header[8] = static_cast<char>(header_length >> 0);
+  header[9] = static_cast<char>(header_length >> 8);
+  m_file.seekp(0);
+  m_file.write(header.data(), header.size());
+}
+
+template<typename Namedtuple>
+template<typename TupleLike, std::size_t... I>
+inline void
+NpyNamedtupleWriter<Namedtuple>::write(
+  const TupleLike& values, namedtuple_impl::Sequence<I...>)
+{
+  // see write implementation in csv writer for explanation
+  using swallow = int[];
+  (void)swallow{0, (void(m_file.write(
+                      reinterpret_cast<const char*>(&std::get<I>(values)),
+                      sizeof(typename std::tuple_element<I, TupleLike>::type))),
+                    0)...};
 }
 
 } // namespace dfe
