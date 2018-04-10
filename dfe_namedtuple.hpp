@@ -89,28 +89,24 @@ private:
   std::ofstream m_file;
 };
 
-/// Write records as a space-separated table into a text file.
+/// Write records as a tab-separated values into a text file.
 template<typename Namedtuple>
-class TabularNamedtupleWriter {
+class TsvNamedtupleWriter {
 public:
-  TabularNamedtupleWriter() = delete;
-  TabularNamedtupleWriter(const TabularNamedtupleWriter&) = delete;
-  TabularNamedtupleWriter& operator=(const TabularNamedtupleWriter&) = delete;
-  TabularNamedtupleWriter(TabularNamedtupleWriter&&) = default;
-  TabularNamedtupleWriter& operator=(TabularNamedtupleWriter&&) = default;
-  ~TabularNamedtupleWriter() = default;
-  /// Create a tabular text file at the given path. Overwrites existing data.
-  TabularNamedtupleWriter(std::string path);
+  TsvNamedtupleWriter() = delete;
+  TsvNamedtupleWriter(const TsvNamedtupleWriter&) = delete;
+  TsvNamedtupleWriter& operator=(const TsvNamedtupleWriter&) = delete;
+  TsvNamedtupleWriter(TsvNamedtupleWriter&&) = default;
+  TsvNamedtupleWriter& operator=(TsvNamedtupleWriter&&) = default;
+  ~TsvNamedtupleWriter() = default;
+  /// Create a tsv file at the given path. Overwrites existing data.
+  TsvNamedtupleWriter(std::string path);
 
   /// Append a record to the end of the file.
   void append(const Namedtuple& record);
 
 private:
-  template<typename TupleLike, std::size_t... I>
-  void write(const TupleLike& values, namedtuple_impl::Sequence<I...>);
-
   std::ofstream m_file;
-  std::array<int, Namedtuple::N> m_widths;
 };
 
 /// Write records into a binary NumPy-compatible `.npy` file.
@@ -142,7 +138,7 @@ private:
   std::size_t m_num_tuples;
 };
 
-// common helpers
+// common helpers and implementation details
 
 namespace namedtuple_impl {
 namespace {
@@ -295,60 +291,26 @@ CsvNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
     namedtuple_impl::SequenceGenerator<Namedtuple::N>());
 }
 
-// implementation tabular writer
-
-namespace namedtuple_impl {
-namespace {
-
-template<typename... Types>
-inline std::array<int, sizeof...(Types)>
-text_widths(const std::tuple<Types...>& t)
-{
-  return {TypeInfo<typename std::decay<Types>::type>::text_width()...};
-}
-
-} // namespace
-} // namespace namedtuple_impl
-
 template<typename Namedtuple>
-inline TabularNamedtupleWriter<Namedtuple>::TabularNamedtupleWriter(
-  std::string path)
-  : m_widths(namedtuple_impl::text_widths(Namedtuple().to_tuple()))
+inline TsvNamedtupleWriter<Namedtuple>::TsvNamedtupleWriter(std::string path)
 {
   // make our life easier. always throw on error
   m_file.exceptions(std::ofstream::badbit | std::ofstream::failbit);
   m_file.open(
     path, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
-  // ensure each column is wide enough to hold its title
-  auto names = Namedtuple::names();
-  for (size_t i = 0; i < Namedtuple::N; ++i) {
-    m_widths[i] = std::max<int>(m_widths[i], names[i].size());
-  }
   // write column names as header
-  write(names, namedtuple_impl::SequenceGenerator<Namedtuple::N>());
+  namedtuple_impl::write_line(
+    m_file, "\t", Namedtuple::names(),
+    namedtuple_impl::SequenceGenerator<Namedtuple::N>());
 }
 
 template<typename Namedtuple>
 inline void
-TabularNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
+TsvNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
 {
-  write(record.to_tuple(), namedtuple_impl::SequenceGenerator<Namedtuple::N>());
-}
-
-template<typename Namedtuple>
-template<typename TupleLike, std::size_t... I>
-inline void
-TabularNamedtupleWriter<Namedtuple>::write(
-  const TupleLike& values, namedtuple_impl::Sequence<I...>)
-{
-  // see csv implementation for detailed explanation of whats going on here
-  using swallow = int[];
-  int col = 0;
-  (void)swallow{0, (void(
-                      m_file << (0 < col++ ? " " : "") << std::left
-                             << std::setw(m_widths[I]) << std::get<I>(values)),
-                    0)...};
-  m_file << '\n';
+  namedtuple_impl::write_line(
+    m_file, "\t", record.to_tuple(),
+    namedtuple_impl::SequenceGenerator<Namedtuple::N>());
 }
 
 // implementation npy writer

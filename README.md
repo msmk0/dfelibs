@@ -60,22 +60,22 @@ and write it to disk in multiple formats:
 
 ```cpp
 dfe::CsvNamedtupleWriter csv("records.csv"); // or
-dfe::NpyNamedtupleWriter npy("records.npy"); // or
-dfe::TabularNamedtupleWriter tab("records.txt");
+dfe::TsvNamedtupleWriter tsv("records.tsv"); // or
+dfe::NpyNamedtupleWriter npy("records.npy");
 
 csv.append(Record{1, 1.4, -2}); // same call for other writers
 ```
 
-The results are either comma-separated values
+The results are either comma-separated text values
 
     x,b,z
     1,1.4,-2
     ...
 
-or tabular text data
+or tab-separated text values
 
-    x     b     z
-    1     1.4   -2
+    x       b       z
+    1       1.4     -2
     ...
 
 or binary [NPY][npy] data.
