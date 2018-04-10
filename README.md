@@ -13,6 +13,7 @@ the `dfelibs` target, i.e.
     ...
     target_link_library(<your/project/target> dfelibs)
 
+All libraries are licensed under the terms of the [MIT license][mit_license].
 
 Dispatcher
 ----------
@@ -102,4 +103,5 @@ float y = dfe::polynomial_eval_fixed(0.5f, 0.25f, 1.0f, 0.75f);
 
 
 [cmake]: https://www.cmake.org
+[mit_license]: https://opensource.org/licenses/MIT
 [npy]: https://docs.scipy.org/doc/numpy/neps/npy-format.html
