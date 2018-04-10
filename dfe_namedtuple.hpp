@@ -86,9 +86,6 @@ public:
   void append(const Namedtuple& record);
 
 private:
-  template<typename TupleLike, std::size_t... I>
-  void write(const TupleLike& values, namedtuple_impl::Sequence<I...>);
-
   std::ofstream m_file;
 };
 
@@ -248,32 +245,17 @@ struct TypeInfo<double> {
 } // namespace
 } // namespace namedtuple_impl
 
-// implementation csv writer
+// implementation text writers
 
-template<typename Namedtuple>
-inline CsvNamedtupleWriter<Namedtuple>::CsvNamedtupleWriter(std::string path)
-{
-  // make our life easier. always throw on error
-  m_file.exceptions(std::ofstream::badbit | std::ofstream::failbit);
-  m_file.open(
-    path, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
-  // write column names as header
-  write(
-    Namedtuple::names(), namedtuple_impl::SequenceGenerator<Namedtuple::N>());
-}
+namespace namedtuple_impl {
+namespace {
 
-template<typename Namedtuple>
-inline void
-CsvNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
-{
-  write(record.to_tuple(), namedtuple_impl::SequenceGenerator<Namedtuple::N>());
-}
-
-template<typename Namedtuple>
+// write values from a tuple in a single line with variable separator
 template<typename TupleLike, std::size_t... I>
 inline void
-CsvNamedtupleWriter<Namedtuple>::write(
-  const TupleLike& values, namedtuple_impl::Sequence<I...>)
+write_line(
+  std::ostream& os, const char* separator, const TupleLike& values,
+  namedtuple_impl::Sequence<I...>)
 {
   // this is a bit like magic, here is whats going on:
   // the (void(<expr>), 0) expression evaluates <expr>, ignores its return value
@@ -284,8 +266,33 @@ CsvNamedtupleWriter<Namedtuple>::write(
   using swallow = int[];
   int col = 0;
   (void)swallow{
-    0, (void(m_file << (0 < col++ ? "," : "") << std::get<I>(values)), 0)...};
-  m_file << '\n';
+    0, (void(os << (0 < col++ ? separator : "") << std::get<I>(values)), 0)...};
+  os << '\n';
+}
+
+} // namespace
+} // namespace namedtuple_impl
+
+template<typename Namedtuple>
+inline CsvNamedtupleWriter<Namedtuple>::CsvNamedtupleWriter(std::string path)
+{
+  // make our life easier. always throw on error
+  m_file.exceptions(std::ofstream::badbit | std::ofstream::failbit);
+  m_file.open(
+    path, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
+  // write column names as header
+  namedtuple_impl::write_line(
+    m_file, ",", Namedtuple::names(),
+    namedtuple_impl::SequenceGenerator<Namedtuple::N>());
+}
+
+template<typename Namedtuple>
+inline void
+CsvNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
+{
+  namedtuple_impl::write_line(
+    m_file, ",", record.to_tuple(),
+    namedtuple_impl::SequenceGenerator<Namedtuple::N>());
 }
 
 // implementation tabular writer
