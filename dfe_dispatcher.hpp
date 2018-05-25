@@ -31,6 +31,7 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace dfe {
@@ -93,18 +94,6 @@ Dispatcher::add(
 namespace dispatcher_impl {
 namespace {
 
-// compile time index sequence
-// see e.g. http://loungecpp.net/cpp/indices-trick/
-template<std::size_t...>
-struct Sequence {
-};
-template<std::size_t N, std::size_t... INDICES>
-struct SequenceGenerator : SequenceGenerator<N - 1, N - 1, INDICES...> {
-};
-template<std::size_t... INDICES>
-struct SequenceGenerator<0, INDICES...> : Sequence<INDICES...> {
-};
-
 template<typename T>
 inline T
 str_decode(const std::string& str)
@@ -147,11 +136,11 @@ struct NativeInterfaceWrappper {
 
   std::string operator()(const std::vector<std::string>& args)
   {
-    return decode_and_call(args, SequenceGenerator<sizeof...(Args)>());
+    return decode_and_call(args, std::index_sequence_for<Args...>{});
   }
   template<std::size_t... I>
   std::string decode_and_call(
-    const std::vector<std::string>& args, Sequence<I...>)
+    const std::vector<std::string>& args, std::index_sequence<I...>)
   {
     return str_encode(
       func(str_decode<typename std::decay<Args>::type>(args.at(I))...));
@@ -165,11 +154,11 @@ struct NativeInterfaceWrappper<void, Args...> {
 
   std::string operator()(const std::vector<std::string>& args)
   {
-    return decode_and_call(args, SequenceGenerator<sizeof...(Args)>());
+    return decode_and_call(args, std::index_sequence_for<Args...>{});
   }
   template<std::size_t... I>
   std::string decode_and_call(
-    const std::vector<std::string>& args, Sequence<I...>)
+    const std::vector<std::string>& args, std::index_sequence<I...>)
   {
     func(str_decode<typename std::decay<Args>::type>(args.at(I))...);
     return std::string();
