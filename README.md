@@ -1,9 +1,9 @@
-Dr. Fred Edison's incredible useful C++11 libraries
+Dr. Fred Edison's incredible useful C++14 libraries
 ===================================================
 May contain traces of industrial strength snake oil
 
 This is a set of small single-header libraries. They require no installation
-and only need a C++11 compatible compiler. To use any of them just copy the
+and only need a C++14 compatible compiler. To use any of them just copy the
 header file into your own project and include it where needed.
 If you are using the [CMake][cmake] build system you can also add the full
 project as a subdirectory and use any of the libraries by linking with

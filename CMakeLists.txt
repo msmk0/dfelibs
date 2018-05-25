@@ -11,7 +11,7 @@ project(dfelibs LANGUAGES CXX)
 option(dfelibs_BUILD_EXAMPLES "Build examples" ${dfelibs_MASTER_PROJECT})
 option(dfelibs_BUILD_UNITTESTS "Build unit tests" ${dfelibs_MASTER_PROJECT})
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
