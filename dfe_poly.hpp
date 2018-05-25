@@ -45,16 +45,15 @@ template<typename T, typename Container>
 constexpr T
 polynomial_eval(const T& x, const Container& coeffs)
 {
-  // Use Horner's method to evaluate polynomial
-  // the rbegin/rend variants for reverse iteration are only available with
-  // c++14. on c++11 we have to use the regular variants and reverse manually.
-  // using begin/end allows us to support regular arrays and std containers.
-  T value = x; // make sure variable-sized types, e.g. std::valarray, work
+  // Use Horner's method to evaluate polynomial, i.e. expand
+  //   f(x) = c0 + c1*x + c2*x^2 + c3*x^3
+  // to the following form
+  //   f(x) = c0 + x * (c1 + x * (c2 + x * c3))
+  // to allow iterative computation with minimal number of operations
+  T value = x; // make sure dynamic-sized types, e.g. std::valarray, work
   value = 0;
-  for (auto c = std::end(coeffs); c != std::begin(coeffs);) {
-    c = std::prev(c);
-    value *= x;
-    value += *c;
+  for (auto c = std::rbegin(coeffs); c != std::rend(coeffs); ++c) {
+    value = *c + x * value;
   }
   return value;
 }
@@ -71,7 +70,8 @@ polynomial_eval_fixed(const T& x, Coefficients&&... coeffs)
     0 < sizeof...(Coefficients), "Need at at least one polynomial coefficient");
   using Common = typename std::common_type<Coefficients...>::type;
   using Array = std::array<Common, sizeof...(Coefficients)>;
-  return polynomial_eval(x, Array{static_cast<Common>(coeffs)...});
+  return polynomial_eval(
+    x, Array{static_cast<Common>(std::forward<Coefficients>(coeffs))...});
 }
 
 } // namespace dfe
