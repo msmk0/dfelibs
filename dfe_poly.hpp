@@ -42,7 +42,7 @@ namespace dfe {
 ///     f(x) = c0 + c1*x + c2*x^2
 ///
 template<typename T, typename Container>
-inline T
+constexpr T
 polynomial_eval(const T& x, const Container& coeffs)
 {
   // Use Horner's method to evaluate polynomial
@@ -64,7 +64,7 @@ polynomial_eval(const T& x, const Container& coeffs)
 /// \param x      Where to evaluate the polynomial.
 /// \param coeffs Coefficients in increasing order, i.e. c0, c1, c2, ... .
 template<typename T, typename... Coefficients>
-inline T
+constexpr T
 polynomial_eval_fixed(const T& x, Coefficients&&... coeffs)
 {
   static_assert(
