@@ -34,6 +34,7 @@
 #include <iomanip>
 #include <string>
 #include <tuple>
+#include <utility>
 
 /// Enable selected members of a class or struct to be used as an named tuple.
 #define DFE_NAMEDTUPLE(name, members...) \
@@ -50,8 +51,7 @@
   friend std::ostream& operator<<(std::ostream& os, const name& x) \
   { \
     return ::dfe::namedtuple_impl::print_tuple( \
-      os, x.to_tuple(), x.names(), \
-      ::dfe::namedtuple_impl::SequenceGenerator<name::N>()); \
+      os, x.to_tuple(), x.names(), std::make_index_sequence<name::N>{}); \
   }
 
 namespace dfe {
@@ -128,18 +128,6 @@ private:
 namespace namedtuple_impl {
 namespace {
 
-// compile time index sequence
-// see e.g. http://loungecpp.net/cpp/indices-trick/
-template<std::size_t...>
-struct Sequence {
-};
-template<std::size_t N, std::size_t... INDICES>
-struct SequenceGenerator : SequenceGenerator<N - 1, N - 1, INDICES...> {
-};
-template<std::size_t... INDICES>
-struct SequenceGenerator<0, INDICES...> : Sequence<INDICES...> {
-};
-
 // reverse macro stringification
 template<std::size_t N>
 inline std::array<std::string, N>
@@ -161,7 +149,8 @@ unstringify_names(const char* str)
 // modified from http://stackoverflow.com/a/6245777
 template<typename Tuple, typename Names, std::size_t... I>
 inline std::ostream&
-print_tuple(std::ostream& os, const Tuple& t, const Names& n, Sequence<I...>)
+print_tuple(
+  std::ostream& os, const Tuple& t, const Names& n, std::index_sequence<I...>)
 {
   using swallow = int[];
   int idx = 0;
@@ -185,7 +174,7 @@ template<typename TupleLike, std::size_t... I>
 inline void
 write_line(
   std::ostream& os, const char* separator, const TupleLike& values,
-  namedtuple_impl::Sequence<I...>)
+  std::index_sequence<I...>)
 {
   // this is a bit like magic, here is whats going on:
   // the (void(<expr>), 0) expression evaluates <expr>, ignores its return value
@@ -213,7 +202,7 @@ inline CsvNamedtupleWriter<Namedtuple>::CsvNamedtupleWriter(std::string path)
   // write column names as header
   namedtuple_impl::write_line(
     m_file, ",", Namedtuple::names(),
-    namedtuple_impl::SequenceGenerator<Namedtuple::N>());
+    std::make_index_sequence<Namedtuple::N>{});
 }
 
 template<typename Namedtuple>
@@ -221,8 +210,7 @@ inline void
 CsvNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
 {
   namedtuple_impl::write_line(
-    m_file, ",", record.to_tuple(),
-    namedtuple_impl::SequenceGenerator<Namedtuple::N>());
+    m_file, ",", record.to_tuple(), std::make_index_sequence<Namedtuple::N>{});
 }
 
 template<typename Namedtuple>
@@ -235,7 +223,7 @@ inline TsvNamedtupleWriter<Namedtuple>::TsvNamedtupleWriter(std::string path)
   // write column names as header
   namedtuple_impl::write_line(
     m_file, "\t", Namedtuple::names(),
-    namedtuple_impl::SequenceGenerator<Namedtuple::N>());
+    std::make_index_sequence<Namedtuple::N>{});
 }
 
 template<typename Namedtuple>
@@ -243,8 +231,7 @@ inline void
 TsvNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
 {
   namedtuple_impl::write_line(
-    m_file, "\t", record.to_tuple(),
-    namedtuple_impl::SequenceGenerator<Namedtuple::N>());
+    m_file, "\t", record.to_tuple(), std::make_index_sequence<Namedtuple::N>{});
 }
 
 // implementation npy writer
@@ -336,7 +323,7 @@ dtypes_description(const T& t)
 template<typename TupleLike, std::size_t... I>
 inline void
 write_npy_record(
-  std::ostream& os, const TupleLike& values, namedtuple_impl::Sequence<I...>)
+  std::ostream& os, const TupleLike& values, std::index_sequence<I...>)
 {
   // see write implementation in csv writer for explanation
   using swallow = int[];
@@ -378,8 +365,7 @@ inline void
 NpyNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
 {
   namedtuple_impl::write_npy_record(
-    m_file, record.to_tuple(),
-    namedtuple_impl::SequenceGenerator<Namedtuple::N>());
+    m_file, record.to_tuple(), std::make_index_sequence<Namedtuple::N>{});
   m_num_tuples += 1;
 }
 
