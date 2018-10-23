@@ -26,15 +26,104 @@
 #pragma once
 
 #include <cassert>
+#include <cstdint>
 #include <functional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
 namespace dfe {
+
+/// Variable-type value object a.k.a. a poor mans std::variant.
+class Variable final {
+public:
+  /// Supported value types.
+  enum class Type { Empty, Boolean, Integer, Float, String };
+
+  Variable()
+    : m_type(Type::Empty)
+  {
+  }
+  Variable(Variable&& v) { *this = std::move(v); }
+  Variable(const Variable& v) { *this = v; }
+  explicit Variable(std::string&& s)
+    : m_string(std::move(s))
+    , m_type(Type::String)
+  {
+  }
+  explicit Variable(const std::string& s)
+    : Variable(std::string(s))
+  {
+  }
+  explicit Variable(const char* s)
+    : Variable(std::string(s))
+  {
+  }
+  // suppport all possible integer types
+  template<typename I, typename = std::enable_if_t<std::is_integral<I>::value>>
+  explicit Variable(I integer)
+    : m_integer(static_cast<int64_t>(integer))
+    , m_type(Type::Integer)
+  {
+  }
+  explicit Variable(double d)
+    : m_float(d)
+    , m_type(Type::Float)
+  {
+  }
+  explicit Variable(float f)
+    : Variable(static_cast<double>(f))
+  {
+  }
+  explicit Variable(bool b)
+    : m_boolean(b)
+    , m_type(Type::Boolean)
+  {
+  }
+  ~Variable() = default;
+
+  Variable& operator=(Variable&& v);
+  Variable& operator=(const Variable& v);
+
+  /// Parse a string into a value of the requested type.
+  static Variable parse_as(const std::string& str, Type type);
+
+  /// In a boolean context a variable is false if it does not contains a value.
+  ///
+  /// \warning This is not the value of the stored boolean.
+  constexpr bool operator!() const { return m_type == Type::Empty; }
+  /// \see operator!()
+  constexpr explicit operator bool() const { return !!(*this); }
+  /// The type of the currently stored value.
+  constexpr Type type() const { return m_type; }
+  /// Get value of the variable as a specific type.
+  ///
+  /// \exception std::invalid_argument if the requested type is incompatible
+  template<typename T>
+  auto as() const;
+
+private:
+  template<typename T>
+  struct Converter;
+  template<typename I>
+  struct IntegerConverter;
+
+  union {
+    int64_t m_integer;
+    double m_float;
+    bool m_boolean;
+  };
+  // std::string has non-trivial constructor; cannot store by value in union
+  // TODO 2018-11-29 msmk: more space-efficient string storage
+  std::string m_string;
+  Type m_type;
+
+  friend std::ostream& operator<<(std::ostream& os, const Variable& v);
+};
 
 /// A simple command dispatcher.
 ///
@@ -75,11 +164,135 @@ private:
   std::unordered_map<std::string, Command> m_commands;
 };
 
-// implementations
+// implementation Variable
 
-inline void
-Dispatcher::add(
-  std::string name, Dispatcher::NativeInterface func, std::size_t nargs)
+inline Variable
+Variable::parse_as(const std::string& str, Type type)
+{
+  if (type == Type::Boolean) {
+    return Variable((str == "true"));
+  } else if (type == Type::Integer) {
+    return Variable(std::stoll(str));
+  } else if (type == Type::Float) {
+    return Variable(std::stod(str));
+  } else if (type == Type::String) {
+    return Variable(str);
+  } else {
+    return Variable();
+  }
+}
+
+inline std::ostream&
+operator<<(std::ostream& os, const Variable& v)
+{
+  if (v.type() == Variable::Type::Boolean) {
+    os << (v.m_boolean ? "true" : "false");
+  } else if (v.m_type == Variable::Type::Integer) {
+    os << v.m_integer;
+  } else if (v.m_type == Variable::Type::Float) {
+    os << v.m_float;
+  } else if (v.m_type == Variable::Type::String) {
+    os << v.m_string;
+  }
+  return os;
+}
+
+inline Variable&
+Variable::operator=(Variable&& v)
+{
+  // handle `x = std::move(x)`
+  if (this == &v) { return *this; }
+  if (v.m_type == Type::Boolean) {
+    m_boolean = v.m_boolean;
+  } else if (v.m_type == Type::Integer) {
+    m_integer = v.m_integer;
+  } else if (v.m_type == Type::Float) {
+    m_float = v.m_float;
+  } else if (v.m_type == Type::String) {
+    m_string = std::move(v.m_string);
+  }
+  m_type = v.m_type;
+  return *this;
+}
+
+inline Variable&
+Variable::operator=(const Variable& v)
+{
+  if (v.m_type == Type::Boolean) {
+    m_boolean = v.m_boolean;
+  } else if (v.m_type == Type::Integer) {
+    m_integer = v.m_integer;
+  } else if (v.m_type == Type::Float) {
+    m_float = v.m_float;
+  } else if (v.m_type == Type::String) {
+    m_string = v.m_string;
+  }
+  m_type = v.m_type;
+  return *this;
+}
+
+template<>
+struct Variable::Converter<bool> {
+  static constexpr Type type() { return Type::Boolean; }
+  static constexpr bool as_t(const Variable& v) { return v.m_boolean; }
+};
+template<>
+struct Variable::Converter<float> {
+  static constexpr Type type() { return Type::Float; }
+  static constexpr float as_t(const Variable& v)
+  {
+    return static_cast<float>(v.m_float);
+  }
+};
+template<>
+struct Variable::Converter<double> {
+  static constexpr Type type() { return Type::Float; }
+  static constexpr double as_t(const Variable& v) { return v.m_float; }
+};
+template<>
+struct Variable::Converter<std::string> {
+  static constexpr Type type() { return Type::String; }
+  static constexpr const std::string& as_t(const Variable& v)
+  {
+    return v.m_string;
+  }
+};
+template<typename I>
+struct Variable::IntegerConverter {
+  static constexpr Type type() { return Type::Integer; }
+  static constexpr I as_t(const Variable& v)
+  {
+    return static_cast<I>(v.m_integer);
+  }
+};
+template<>
+struct Variable::Converter<int8_t> : Variable::IntegerConverter<int8_t> {
+};
+template<>
+struct Variable::Converter<int16_t> : Variable::IntegerConverter<int16_t> {
+};
+template<>
+struct Variable::Converter<int32_t> : Variable::IntegerConverter<int32_t> {
+};
+template<>
+struct Variable::Converter<int64_t> : Variable::IntegerConverter<int64_t> {
+};
+template<>
+struct Variable::Converter<uint8_t> : Variable::IntegerConverter<uint8_t> {
+};
+template<>
+struct Variable::Converter<uint16_t> : Variable::IntegerConverter<uint16_t> {
+};
+template<>
+struct Variable::Converter<uint32_t> : Variable::IntegerConverter<uint32_t> {
+};
+template<>
+struct Variable::Converter<uint64_t> : Variable::IntegerConverter<uint64_t> {
+};
+
+template<typename T>
+inline auto
+Variable::as() const
 {
   if (name.empty()) {
     throw std::invalid_argument("Can not register command with empty name");
@@ -88,7 +301,7 @@ Dispatcher::add(
     throw std::invalid_argument(
       "Can not register command '" + name + "' more than once");
   }
-  m_commands[std::move(name)] = Command{func, nargs};
+  return Variable::Converter<T>::as_t(*this);
 }
 
 namespace dispatcher_impl {

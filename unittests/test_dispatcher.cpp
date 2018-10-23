@@ -6,6 +6,117 @@
 
 #include <dfe_dispatcher.hpp>
 
+// test for variable type
+
+using dfe::Variable;
+using dfe::VariableType;
+
+BOOST_AUTO_TEST_CASE(dispatcher_variable_empty)
+{
+  Variable empty;
+
+  BOOST_CHECK(empty.type() == VariableType::Empty);
+  BOOST_CHECK_THROW(empty.as<bool>(), std::invalid_argument); // wrong type
+  BOOST_CHECK_THROW(empty.as<int>(), std::invalid_argument);    // wrong type
+  BOOST_CHECK_THROW(empty.as<double>(), std::invalid_argument); // wrong type
+  BOOST_CHECK_THROW(
+    empty.as<std::string>(), std::invalid_argument); // wrong type
+
+  // asign non-empty variable
+  empty = Variable(-23);
+  BOOST_CHECK(empty.type() == VariableType::Integer);
+  BOOST_TEST(empty.as<int>() == -23);
+}
+
+BOOST_AUTO_TEST_CASE(dispatcher_variable_bool)
+{
+  Variable vt(true);
+  Variable vf(false);
+
+  BOOST_CHECK(vt.type() == VariableType::Boolean);
+  BOOST_CHECK(vf.type() == VariableType::Boolean);
+  BOOST_TEST(vt.as<bool>());
+  BOOST_TEST(!vf.as<bool>());
+  BOOST_CHECK_THROW(vt.as<double>(), std::invalid_argument); // wrong type
+  BOOST_CHECK_THROW(vf.as<int>(), std::invalid_argument);    // wrong type
+}
+
+BOOST_AUTO_TEST_CASE(dispatcher_variable_int)
+{
+  Variable i1(-123);
+
+  BOOST_CHECK(i1.type() == VariableType::Integer);
+  BOOST_TEST(i1.as<int>() == -123);
+  BOOST_TEST(i1.as<int64_t>() == -123);
+  BOOST_CHECK_THROW(i1.as<double>(), std::invalid_argument); // wrong type
+}
+
+BOOST_AUTO_TEST_CASE(dispatcher_variable_uint)
+{
+  Variable i1(123u);
+
+  BOOST_CHECK(i1.type() == VariableType::Integer);
+  BOOST_TEST(i1.as<int>() == 123);
+  BOOST_TEST(i1.as<int64_t>() == 123);
+  BOOST_TEST(i1.as<unsigned int>() == 123);
+  BOOST_TEST(i1.as<uint64_t>() == 123);
+  BOOST_CHECK_THROW(i1.as<float>(), std::invalid_argument); // wrong type
+}
+
+BOOST_AUTO_TEST_CASE(dispatcher_variable_float)
+{
+  Variable f1(0.123f);
+  Variable f2(-1.234e14f);
+
+  BOOST_CHECK(f1.type() == VariableType::Float);
+  BOOST_CHECK(f2.type() == VariableType::Float);
+  BOOST_TEST(f1.as<float>() == 0.123f);
+  BOOST_TEST(f2.as<float>() == -1.234e14f);
+  BOOST_CHECK_THROW(f1.as<int>(), std::invalid_argument); // wrong type
+  BOOST_CHECK_THROW(f2.as<uint64_t>(), std::invalid_argument); // wrong type
+}
+
+BOOST_AUTO_TEST_CASE(dispatcher_variable_double)
+{
+  Variable d1(0.123);
+  Variable d2(-1.234e14);
+
+  BOOST_CHECK(d1.type() == VariableType::Float);
+  BOOST_CHECK(d2.type() == VariableType::Float);
+  BOOST_TEST(d1.as<double>() == 0.123);
+  BOOST_TEST(d2.as<double>() == -1.234e14);
+  BOOST_CHECK_THROW(d1.as<bool>(), std::invalid_argument); // wrong type
+  BOOST_CHECK_THROW(d2.as<std::string>(), std::invalid_argument); // wrong type
+}
+
+BOOST_AUTO_TEST_CASE(dispatcher_variable_chars)
+{
+  const char* cs = "test";
+  const char* cl = "testTESTtestTESTtestTESTtestTEST";
+  Variable vs(cs);
+  Variable vl(cl);
+
+  BOOST_CHECK(vs.type() == VariableType::String);
+  BOOST_CHECK(vl.type() == VariableType::String);
+  BOOST_TEST(vs.as<std::string>() == cs);
+  BOOST_TEST(vl.as<std::string>() == cl);
+  BOOST_CHECK_THROW(vs.as<bool>(), std::invalid_argument); // wrong type
+}
+
+BOOST_AUTO_TEST_CASE(dispatcher_variable_string)
+{
+  std::string ss("axcvsd");
+  std::string sl("asdf9asdfj;alcxv-1gasldkfjvb890basdf-0913");
+  Variable vs(ss);
+  Variable vl(sl);
+
+  BOOST_CHECK(vs.type() == VariableType::String);
+  BOOST_CHECK(vl.type() == VariableType::String);
+  BOOST_TEST(vs.as<std::string>() == ss);
+  BOOST_TEST(vl.as<std::string>() == sl);
+  BOOST_CHECK_THROW(vs.as<int>(), std::invalid_argument); // wrong type
+}
+
 // basic sanity checks
 
 BOOST_AUTO_TEST_CASE(dispatcher_add)
