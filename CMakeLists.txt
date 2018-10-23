@@ -11,9 +11,10 @@ project(dfelibs LANGUAGES CXX)
 option(dfelibs_BUILD_EXAMPLES "Build examples" ${dfelibs_MASTER_PROJECT})
 option(dfelibs_BUILD_UNITTESTS "Build unit tests" ${dfelibs_MASTER_PROJECT})
 
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+# include after updates to CMAKE_CXX_FLAGS, e.g. from external packages
+include(RequireCXX14)
 
 # define header-only library
 add_library(dfelibs INTERFACE)
