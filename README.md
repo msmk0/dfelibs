@@ -40,6 +40,35 @@ dispatchr.call("another_function", {"3.14", "23"});
 
 The string arguments are automatically converted to the correct type.
 
+Histogram
+---------
+
+Compose a multi-dimensional histogram with configurable axis types
+
+```cpp
+#include "dfe_histogram.hpp"
+
+using H3 =
+  dfe::Histogram<float,
+    dfe::UniformAxis<float>,
+    dfe::OverflowAxis<float>,
+    dfe::VariableAxis<float>>;
+
+// axis 0: 16 bins of uniform size, no under/overflow bins
+// axis 1: 8 bins of uniform size, additional under/overflow bins
+// axis 2: 4 bins of variable size, no under/overflow bins
+H3 h({0.0, 1.0, 16}, {-2.0, 2.0, 8}, {1.0, 10.0, 20.0, 30.0, 100.0});
+```
+
+and fill it with weighted or unweighted data
+
+```cpp
+h1.fill(0.5, 0.0, 25);       // weight = 1
+h1.fill(0.25, 1.0, 65, 0.3); // weight = 0.3
+h1.fill(0.25, 4.0, 65);      // axis 1 overflow
+h1.fill(2.25, 1.0, 65);      // fails, due to axis 0 overflow
+```
+
 Namedtuple
 ----------
 
