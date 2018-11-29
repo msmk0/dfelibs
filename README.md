@@ -1,6 +1,6 @@
 Dr. Fred Edison's incredible useful C++14 libraries
 ===================================================
-May contain traces of industrial strength snake oil
+May contain traces of industrial strength snake oil.
 
 This is a set of small single-header libraries. They require no installation
 and only need a C++14 compatible compiler. To use any of them just copy the
@@ -18,27 +18,32 @@ All libraries are licensed under the terms of the [MIT license][mit_license].
 Dispatcher
 ----------
 
-Register arbitrary commands with the dispatcher
+Register arbitrary functions with the dispatcher
 
 ```cpp
 #include "dfe_dispatcher.hpp"
 
 void func1(int x, double y, std::string z) { ... }
-void func2(float a, unsigned it b) { ... }
+int func2(float a, unsigned it b) { ... }
 
-dfe::Dispatcher dispatchr;
-dispatchr.add("a_function", func1);
-dispatchr.add("another_function", func2);
+dfe::Dispatcher dispatch;
+dispatch.add("a_function", func1);
+dispatch.add("another_function", func2);
 ```
 
-and call them by name with a list of string arguments:
+and call them by name with regular arguments
 
 ```cpp
-dispatchr.call("a_function", {"12", "0.23", "a message"});
-dispatchr.call("another_function", {"3.14", "23"});
+dispatch.call("a_function", 12, 0.23, "a message");
+dispatch.call("another_function", 3.14f, 23).as<int>();
 ```
 
-The string arguments are automatically converted to the correct type.
+or with a list of string arguments that are automatically parsed
+into the correct types
+
+```cpp
+dispatch.call_parsed("a_function", {"12", "0.23", "a message"});
+```
 
 Histogram
 ---------
