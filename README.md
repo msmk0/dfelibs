@@ -24,7 +24,7 @@ Register arbitrary functions with the dispatcher
 #include "dfe_dispatcher.hpp"
 
 void func1(int x, double y, std::string z) { ... }
-int func2(float a, unsigned it b) { ... }
+int func2(float a, unsigned int b) { ... }
 
 dfe::Dispatcher dispatch;
 dispatch.add("a_function", func1);
