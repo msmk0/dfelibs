@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 /// \file
-/// \brief   Command dispatcher that takes function names and string arguments
+/// \brief   Command dispatcher to register functions and call them by name
 /// \author  Moritz Kiehn <msmk@cern.ch>
 /// \date    2018-02-20
 
@@ -28,7 +28,7 @@
 #include <cassert>
 #include <cstdint>
 #include <functional>
-#include <sstream>
+#include <ostream>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
@@ -127,39 +127,47 @@ private:
 
 /// A simple command dispatcher.
 ///
-/// You can register commands and call them by name using string arguments.
+/// You can register commands and call them by name.
 class Dispatcher {
 public:
-  /// Internally functions take variable string arguments and return a string.
-  using NativeInterface =
-    std::function<std::string(const std::vector<std::string>&)>;
+  /// The native dispatcher function interface.
+  using Interface = std::function<Variable(const std::vector<Variable>&)>;
 
-  /// Register a command that implements the native dispatcher call interface.
-  void add(std::string name, NativeInterface func, std::size_t nargs);
-  /// Register a command with arbitrary arguments.
+  /// Register a native dispatcher function.
   ///
-  /// All argument types must be constructible via the
-  /// `std::istream& operator>>(...)` formatted input operator and the return
-  /// type must be support the `std::ostream& operator<<(...)` formatted output
-  /// operator.
+  /// \param name      Unique function name
+  /// \param func      Function object
+  /// \param arg_types Arguments types
+  void add(
+    std::string name, Interface&& func,
+    std::vector<Variable::Type>&& arg_types);
+  /// Register a function with arbitrary arguments.
+  ///
+  /// The return type and the argument types must be compatible with `Variable`.
   template<typename R, typename... Args>
-  void add(std::string name, std::function<R(Args...)> func);
+  void add(std::string name, std::function<R(Args...)>&& func);
   template<typename R, typename... Args>
   void add(std::string name, R (*func)(Args...));
   template<typename T, typename R, typename... Args>
   void add(std::string name, R (T::*member_func)(Args...), T* t);
 
-  /// Call a command with some arguments.
-  std::string call(
+  /// Call a command with arbitrary arguments.
+  template<typename... Args>
+  Variable call(const std::string& name, Args&&... args);
+  /// Call a command with arguments parsed from strings into the expected types.
+  Variable call_parsed(
     const std::string& name, const std::vector<std::string>& args);
+  /// Call a command using the native argument encoding.
+  Variable call_native(
+    const std::string& name, const std::vector<Variable>& args);
 
-  /// Return a list of registered commands and required number of arguments.
-  std::vector<std::pair<std::string, std::size_t>> commands() const;
+  /// Return a list of registered commands.
+  std::vector<std::string> commands() const;
 
 private:
   struct Command {
-    NativeInterface func;
-    std::size_t nargs;
+    Interface func;
+    std::vector<Variable::Type> argument_types;
   };
   std::unordered_map<std::string, Command> m_commands;
 };
@@ -294,6 +302,73 @@ template<typename T>
 inline auto
 Variable::as() const
 {
+  if (m_type != Variable::Converter<T>::type()) {
+    throw std::invalid_argument(
+      "Requested type is incompatible with stored type");
+  }
+  return Variable::Converter<T>::as_t(*this);
+}
+
+// implementation Dispatcher
+
+namespace dispatcher_impl {
+namespace {
+
+// Wrap a function that returns a value
+template<typename R, typename... Args>
+struct InterfaceWrappper {
+  std::function<R(Args...)> func;
+
+  Variable operator()(const std::vector<Variable>& args)
+  {
+    return call(args, std::index_sequence_for<Args...>());
+  }
+  template<std::size_t... I>
+  Variable call(const std::vector<Variable>& args, std::index_sequence<I...>)
+  {
+    return Variable(func(args.at(I).as<typename std::decay_t<Args>>()...));
+  }
+};
+
+// Wrap a function that does not return anything
+template<typename... Args>
+struct InterfaceWrappper<void, Args...> {
+  std::function<void(Args...)> func;
+
+  Variable operator()(const std::vector<Variable>& args)
+  {
+    return call(args, std::index_sequence_for<Args...>());
+  }
+  template<std::size_t... I>
+  Variable call(const std::vector<Variable>& args, std::index_sequence<I...>)
+  {
+    func(args.at(I).as<typename std::decay_t<Args>>()...);
+    return Variable();
+  }
+};
+
+template<typename R, typename... Args>
+inline Dispatcher::Interface
+make_wrapper(std::function<R(Args...)>&& function)
+{
+  return InterfaceWrappper<R, Args...>{std::move(function)};
+}
+
+template<typename R, typename... Args>
+std::vector<Variable::Type>
+make_types(const std::function<R(Args...)>&)
+{
+  return {Variable(std::decay_t<Args>()).type()...};
+}
+
+} // namespace
+} // namespace dispatcher_impl
+
+inline void
+Dispatcher::add(
+  std::string name, Dispatcher::Interface&& func,
+  std::vector<Variable::Type>&& arg_types)
+{
   if (name.empty()) {
     throw std::invalid_argument("Can not register command with empty name");
   }
@@ -301,99 +376,17 @@ Variable::as() const
     throw std::invalid_argument(
       "Can not register command '" + name + "' more than once");
   }
-  return Variable::Converter<T>::as_t(*this);
+  m_commands[std::move(name)] = Command{std::move(func), std::move(arg_types)};
 }
-
-namespace dispatcher_impl {
-namespace {
-
-template<typename T>
-inline T
-str_decode(const std::string& str)
-{
-  T tmp;
-  std::istringstream is(str);
-  is >> tmp;
-  if (is.fail()) {
-    std::string msg;
-    msg += "Could not convert value '";
-    msg += str;
-    msg += "' to type '";
-    msg += typeid(T).name();
-    msg += "'";
-    throw std::invalid_argument(std::move(msg));
-  }
-  return tmp;
-}
-
-template<typename T>
-inline std::string
-str_encode(const T& value)
-{
-  std::ostringstream os;
-  os << value;
-  if (os.fail()) {
-    std::string msg;
-    msg += "Could not convert type '";
-    msg += typeid(T).name();
-    msg += "' to std::string";
-    throw std::invalid_argument(std::move(msg));
-  }
-  return os.str();
-}
-
-// Wrap a function that returns a value
-template<typename R, typename... Args>
-struct NativeInterfaceWrappper {
-  std::function<R(Args...)> func;
-
-  std::string operator()(const std::vector<std::string>& args)
-  {
-    return decode_and_call(args, std::index_sequence_for<Args...>{});
-  }
-  template<std::size_t... I>
-  std::string decode_and_call(
-    const std::vector<std::string>& args, std::index_sequence<I...>)
-  {
-    return str_encode(
-      func(str_decode<typename std::decay<Args>::type>(args.at(I))...));
-  }
-};
-
-// Wrap a function that does not return anything
-template<typename... Args>
-struct NativeInterfaceWrappper<void, Args...> {
-  std::function<void(Args...)> func;
-
-  std::string operator()(const std::vector<std::string>& args)
-  {
-    return decode_and_call(args, std::index_sequence_for<Args...>{});
-  }
-  template<std::size_t... I>
-  std::string decode_and_call(
-    const std::vector<std::string>& args, std::index_sequence<I...>)
-  {
-    func(str_decode<typename std::decay<Args>::type>(args.at(I))...);
-    return std::string();
-  }
-};
-
-template<typename R, typename... Args>
-inline Dispatcher::NativeInterface
-make_native_interface(std::function<R(Args...)>&& function)
-{
-  return NativeInterfaceWrappper<R, Args...>{std::move(function)};
-}
-
-} // namespace
-} // namespace dispatcher_impl
 
 template<typename R, typename... Args>
 inline void
-Dispatcher::add(std::string name, std::function<R(Args...)> func)
+Dispatcher::add(std::string name, std::function<R(Args...)>&& func)
 {
-  m_commands[std::move(name)] = Command{
-    dispatcher_impl::make_native_interface(std::move(func)), sizeof...(Args)};
+  auto args = dispatcher_impl::make_types(func);
+  add(
+    std::move(name), dispatcher_impl::make_wrapper(std::move(func)),
+    std::move(args));
 }
 
 template<typename R, typename... Args>
@@ -415,29 +408,54 @@ Dispatcher::add(std::string name, R (T::*member_func)(Args...), T* t)
       }));
 }
 
-inline std::string
-Dispatcher::call(const std::string& name, const std::vector<std::string>& args)
+inline Variable
+Dispatcher::call_native(
+  const std::string& name, const std::vector<Variable>& args)
 {
   auto cmd = m_commands.find(name);
   if (cmd == m_commands.end()) {
     throw std::invalid_argument("Unknown command '" + name + "'");
   }
-  if (args.size() != cmd->second.nargs) {
-    throw std::invalid_argument(
-      "Command '" + name + "' expects " + std::to_string(cmd->second.nargs) +
-      " arguments but " + std::to_string(args.size()) + " given");
+  if (args.size() != cmd->second.argument_types.size()) {
+    throw std::invalid_argument("Invalid number of arguments");
   }
   return cmd->second.func(args);
 }
 
-inline std::vector<std::pair<std::string, std::size_t>>
+inline Variable
+Dispatcher::call_parsed(
+  const std::string& name, const std::vector<std::string>& args)
+{
+  // dont reuse call_native since we need to have access to the command anyways
+  auto cmd = m_commands.find(name);
+  if (cmd == m_commands.end()) {
+    throw std::invalid_argument("Unknown command '" + name + "'");
+  }
+  if (args.size() != cmd->second.argument_types.size()) {
+    throw std::invalid_argument("Invalid number of arguments");
+  }
+  // convert string arguments into Variable values
+  std::vector<Variable> vargs;
+  for (std::size_t i = 0; i < args.size(); ++i) {
+    vargs.push_back(Variable::parse_as(args[i], cmd->second.argument_types[i]));
+  }
+  return cmd->second.func(vargs);
+}
+
+template<typename... Args>
+inline Variable
+Dispatcher::call(const std::string& name, Args&&... args)
+{
+  return call_native(
+    name, std::vector<Variable>{Variable(std::forward<Args>(args))...});
+}
+
+inline std::vector<std::string>
 Dispatcher::commands() const
 {
-  std::vector<std::pair<std::string, std::size_t>> cmds;
+  std::vector<std::string> cmds;
 
-  for (const auto& cmd : m_commands) {
-    cmds.emplace_back(cmd.first, cmd.second.nargs);
-  }
+  for (const auto& cmd : m_commands) { cmds.emplace_back(cmd.first); }
   return cmds;
 }
 
