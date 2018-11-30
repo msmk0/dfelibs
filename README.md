@@ -117,22 +117,24 @@ or binary [NPY][npy] data.
 Poly
 ----
 
-Evaluate polynomial functions using either a (variable-sized) container
-of coefficients
+Evaluate polynomial functions and their derivatives using either a
+(variable-sized) container of coefficients
 
 ```cpp
 #include "dfe_poly.h"
 
 std:vector<double> coeffs = {0.0, 2.0, 3.0, 4.0};
 // evaluate f(x) = 2*x + 3*x^2 + 4*x^3 at x=-1.0
-double y = dfe::polynomial_eval(-1.0, coeffs);
+double y = dfe::polynomial_val(-1.0, coeffs);
+// evaluate df(x) / dx at x=-0.5
+double dy = dfe::polynomial_der(-0.5, coeffs);
 ```
 
 or using the coefficients directly for fixed order polynomials:
 
 ```cpp
 // evaluate f(x) = 0.25 + x + 0.75*x^2 at x=0.5
-float y = dfe::polynomial_eval_fixed(0.5f, 0.25f, 1.0f, 0.75f);
+float y = dfe::polynomial_val_fixed(0.5f, 0.25f, 1.0f, 0.75f);
 ```
 
 
