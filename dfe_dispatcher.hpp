@@ -138,18 +138,24 @@ public:
   /// \param name      Unique function name
   /// \param func      Function object
   /// \param arg_types Arguments types
+  /// \param help      Optional help text
   void add(
-    std::string name, Interface&& func,
-    std::vector<Variable::Type>&& arg_types);
+    std::string name, Interface&& func, std::vector<Variable::Type>&& arg_types,
+    std::string help = std::string());
   /// Register a function with arbitrary arguments.
   ///
   /// The return type and the argument types must be compatible with `Variable`.
   template<typename R, typename... Args>
-  void add(std::string name, std::function<R(Args...)>&& func);
+  void add(
+    std::string name, std::function<R(Args...)>&& func,
+    std::string help = std::string());
   template<typename R, typename... Args>
-  void add(std::string name, R (*func)(Args...));
+  void add(
+    std::string name, R (*func)(Args...), std::string help = std::string());
   template<typename T, typename R, typename... Args>
-  void add(std::string name, R (T::*member_func)(Args...), T* t);
+  void add(
+    std::string name, R (T::*member_func)(Args...), T* t,
+    std::string help = std::string());
 
   /// Call a command with arbitrary arguments.
   template<typename... Args>
@@ -163,11 +169,14 @@ public:
 
   /// Return a list of registered commands.
   std::vector<std::string> commands() const;
+  /// Return the help text for the command.
+  const std::string& help(const std::string& name) const;
 
 private:
   struct Command {
     Interface func;
     std::vector<Variable::Type> argument_types;
+    std::string help;
   };
   std::unordered_map<std::string, Command> m_commands;
 };
@@ -367,7 +376,7 @@ make_types(const std::function<R(Args...)>&)
 inline void
 Dispatcher::add(
   std::string name, Dispatcher::Interface&& func,
-  std::vector<Variable::Type>&& arg_types)
+  std::vector<Variable::Type>&& arg_types, std::string help)
 {
   if (name.empty()) {
     throw std::invalid_argument("Can not register command with empty name");
@@ -376,36 +385,41 @@ Dispatcher::add(
     throw std::invalid_argument(
       "Can not register command '" + name + "' more than once");
   }
-  m_commands[std::move(name)] = Command{std::move(func), std::move(arg_types)};
+  m_commands[std::move(name)] =
+    Command{std::move(func), std::move(arg_types), std::move(help)};
 }
 
 template<typename R, typename... Args>
 inline void
-Dispatcher::add(std::string name, std::function<R(Args...)>&& func)
+Dispatcher::add(
+  std::string name, std::function<R(Args...)>&& func, std::string help)
 {
   auto args = dispatcher_impl::make_types(func);
   add(
     std::move(name), dispatcher_impl::make_wrapper(std::move(func)),
-    std::move(args));
+    std::move(args), std::move(help));
 }
 
 template<typename R, typename... Args>
 inline void
-Dispatcher::add(std::string name, R (*func)(Args...))
+Dispatcher::add(std::string name, R (*func)(Args...), std::string help)
 {
   assert(func && "Function pointer must be non-null");
-  add(std::move(name), std::function<R(Args...)>(func));
+  add(std::move(name), std::function<R(Args...)>(func), std::move(help));
 }
 
 template<typename T, typename R, typename... Args>
 inline void
-Dispatcher::add(std::string name, R (T::*member_func)(Args...), T* t)
+Dispatcher::add(
+  std::string name, R (T::*member_func)(Args...), T* t, std::string help)
 {
   assert(member_func && "Member function pointer must be non-null");
   assert(t && "Object pointer must be non-null");
-  add(std::move(name), std::function<R(Args...)>([=](Args... args) {
-        return (t->*member_func)(args...);
-      }));
+  add(
+    std::move(name), std::function<R(Args...)>([=](Args... args) {
+      return (t->*member_func)(args...);
+    }),
+    std::move(help));
 }
 
 inline Variable
@@ -457,6 +471,12 @@ Dispatcher::commands() const
 
   for (const auto& cmd : m_commands) { cmds.emplace_back(cmd.first); }
   return cmds;
+}
+
+inline const std::string&
+Dispatcher::help(const std::string& name) const
+{
+  return m_commands.at(name).help;
 }
 
 } // namespace dfe

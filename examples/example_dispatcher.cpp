@@ -55,8 +55,8 @@ main(int argc, char* argv[])
   Dispatcher dispatch;
 
   // add functions to dispatcher
-  dispatch.add("noreturn", func_noreturn);
-  dispatch.add("return", func_return);
+  dispatch.add("noreturn", func_noreturn, "does something");
+  dispatch.add("return", func_return, "returns something");
   // native function different number of arguments
   dispatch.add("native1", func_native, {Type::String});
   dispatch.add(
@@ -66,12 +66,13 @@ main(int argc, char* argv[])
     {Type::String, Type::String, Type::String, Type::String, Type::String});
   WithFunctions adder = {5.5};
   dispatch.add("member_add", &WithFunctions::member_add, &adder);
-  dispatch.add("static_add", WithFunctions::static_add);
+  dispatch.add("static_add", WithFunctions::static_add, "a static member");
 
   // list registered functions
   std::cout << "registered commands:\n";
-  for (const auto cmd : dispatch.commands()) {
-    std::cout << "  " << cmd << "\n";
+  for (const auto& cmd : dispatch.commands()) {
+    std::cout << "  " << cmd << '\n';
+    std::cout << "    " << dispatch.help(cmd) << '\n';
   }
 
   // call functions by name
