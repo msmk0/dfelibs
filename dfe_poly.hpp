@@ -31,19 +31,19 @@
 
 namespace dfe {
 
-/// Evaluate a n-th order polynomial.
+/// Evaluate a polynomial of arbitrary order.
 ///
 /// \param x      Where to evaluate the polynomial.
 /// \param coeffs ReversibleContainer with n+1 coefficients.
 ///
-/// The coefficients must be given in increasing order. A second order
-/// polynomial with coefficients c0, c1, c2 defines the function
+/// The coefficients must be given in increasing order. E.g. a second order
+/// polynomial has three coefficients c0, c1, c2 that define the function
 ///
 ///     f(x) = c0 + c1*x + c2*x^2
 ///
 template<typename T, typename Container>
 constexpr T
-polynomial_eval(const T& x, const Container& coeffs)
+polynomial_val(const T& x, const Container& coeffs)
 {
   // Use Horner's method to evaluate polynomial, i.e. expand
   //   f(x) = c0 + c1*x + c2*x^2 + c3*x^3
@@ -58,19 +58,46 @@ polynomial_eval(const T& x, const Container& coeffs)
   return value;
 }
 
-/// Evaluate a fixed-order polynomial.
+/// Evaluate the derivative of a polynomial of arbitrary order.
+///
+/// \param x      Where to evaluate the derivative.
+/// \param coeffs ReversibleContainer with n+1 coefficients.
+///
+/// The coefficients must be given in increasing order. E.g. a second order
+/// polynomial has three coefficients c0, c1, c2 that define the derivative
+///
+///     df(x) / dx = 0 + c1 + 2*c2*x
+///
+template<typename T, typename Container>
+constexpr T
+polynomial_der(const T& x, const Container& coeffs)
+{
+  // Use Horner's method to evaluate polynomial and its derivative at the
+  // same time
+  T q = x; // make sure dynamic-sized types, e.g. std::valarray, work
+  T p = x;
+  q = 0;
+  p = 0;
+  for (auto c = std::rbegin(coeffs); c != std::rend(coeffs); ++c) {
+    q = p + x * q;
+    p = *c + x * p;
+  }
+  return q;
+}
+
+/// Evaluate a polynomial of fixed order.
 ///
 /// \param x      Where to evaluate the polynomial.
 /// \param coeffs Coefficients in increasing order, i.e. c0, c1, c2, ... .
 template<typename T, typename... Coefficients>
 constexpr T
-polynomial_eval_fixed(const T& x, Coefficients&&... coeffs)
+polynomial_val_fixed(const T& x, Coefficients&&... coeffs)
 {
   static_assert(
     0 < sizeof...(Coefficients), "Need at at least one polynomial coefficient");
   using Common = typename std::common_type<Coefficients...>::type;
   using Array = std::array<Common, sizeof...(Coefficients)>;
-  return polynomial_eval(
+  return polynomial_val(
     x, Array{static_cast<Common>(std::forward<Coefficients>(coeffs))...});
 }
 
