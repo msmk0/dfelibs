@@ -24,6 +24,7 @@
 /// \date    2018-02-26
 
 #include <array>
+#include <initializer_list>
 #include <iterator>
 #include <type_traits>
 
@@ -85,20 +86,19 @@ polynomial_der(const T& x, const Container& coeffs)
   return q;
 }
 
-/// Evaluate a polynomial of fixed order.
-///
-/// \param x      Where to evaluate the polynomial.
-/// \param coeffs Coefficients in increasing order, i.e. c0, c1, c2, ... .
-template<typename T, typename... Coefficients>
+/// Evaluate a polynomial with an order fixed at compile time.
+template<typename T, typename U>
 constexpr T
-polynomial_val_fixed(const T& x, Coefficients&&... coeffs)
+polynomial_val(const T& x, std::initializer_list<U> coeffs)
 {
-  static_assert(
-    0 < sizeof...(Coefficients), "Need at at least one polynomial coefficient");
-  using Common = typename std::common_type<Coefficients...>::type;
-  using Array = std::array<Common, sizeof...(Coefficients)>;
-  return polynomial_val(
-    x, Array{static_cast<Common>(std::forward<Coefficients>(coeffs))...});
+  return polynomial_val<T, std::initializer_list<U>>(x, coeffs);
+}
+/// Evaluatethe derivative of a polynomial with an order fixed at compile time.
+template<typename T, typename U>
+constexpr T
+polynomial_der(const T& x, std::initializer_list<U> coeffs)
+{
+  return polynomial_der<T, std::initializer_list<U>>(x, coeffs);
 }
 
 } // namespace dfe

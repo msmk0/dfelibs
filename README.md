@@ -134,7 +134,7 @@ or using the coefficients directly for fixed order polynomials:
 
 ```cpp
 // evaluate f(x) = 0.25 + x + 0.75*x^2 at x=0.5
-float y = dfe::polynomial_val_fixed(0.5f, 0.25f, 1.0f, 0.75f);
+float y = dfe::polynomial_val(0.5f, {0.25f, 1.0f, 0.75f});
 ```
 
 
