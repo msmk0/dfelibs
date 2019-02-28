@@ -145,7 +145,10 @@ private:
   std::vector<T> m_edges;
 };
 
-/// A generic histogram with configurable axes
+/// A generic histogram with configurable axes.
+///
+/// \tparam T    The type of the data stored per bin
+/// \tparam Axes Each axis must provide `.nbins()` and `.index(...)` methods
 template<typename T, typename... Axes>
 class Histogram {
 public:

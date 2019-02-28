@@ -92,7 +92,7 @@ public:
   /// Parse a string into a value of the requested type.
   static Variable parse_as(const std::string& str, Type type);
 
-  /// In a boolean context a variable is false if it does not contains a value.
+  /// In a boolean context a variable is false if it does not contain a value.
   ///
   /// \warning This is not the value of the stored boolean.
   constexpr bool operator!() const { return m_type == Type::Empty; }
