@@ -14,6 +14,7 @@ function(add_unittest _name)
 endfunction()
 
 add_unittest(dispatcher)
+add_unittest(flatset)
 add_unittest(histogram)
 add_unittest(namedtuple)
 add_unittest(poly)

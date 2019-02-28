@@ -45,6 +45,22 @@ into the correct types
 dispatch.call_parsed("a_function", {"12", "0.23", "a message"});
 ```
 
+FlatSet
+-------
+
+Store elements in a set-like object where the data is internally stored in
+a sorted flat container (as opposed to a tree-like structed as in `std::set`).
+
+```cpp
+#include "dfe_flat.hpp"
+
+dfe::FlatSet<int> x;
+
+x.insert_or_assign(-1);
+x.insert_or_assign(23);
+x.contains(23); // returns true
+```
+
 Histogram
 ---------
 
