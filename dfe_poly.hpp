@@ -1,4 +1,4 @@
-// Copyright 2018 Moritz Kiehn
+// Copyright 2018-2019 Moritz Kiehn
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,9 +24,9 @@
 /// \date    2018-02-26
 
 #include <array>
-#include <initializer_list>
 #include <iterator>
 #include <type_traits>
+#include <utility>
 
 #pragma once
 
@@ -59,19 +59,23 @@ polynomial_val(const T& x, const Container& coeffs)
   return value;
 }
 
-/// Evaluate the derivative of a polynomial of arbitrary order.
+/// Evaluate the value and the derivative of a polynomial of arbitrary order.
 ///
 /// \param x      Where to evaluate the derivative.
 /// \param coeffs ReversibleContainer with n+1 coefficients.
 ///
 /// The coefficients must be given in increasing order. E.g. a second order
-/// polynomial has three coefficients c0, c1, c2 that define the derivative
+/// polynomial has three coefficients c0, c1, c2 that define the function
 ///
-///     df(x) / dx = 0 + c1 + 2*c2*x
+///     f(x) = c0 + c1*x + c2*x^2
+///
+/// and the derivative
+///
+///     df(x)/dx = 0 + c1 + 2*c2*x
 ///
 template<typename T, typename Container>
-constexpr T
-polynomial_der(const T& x, const Container& coeffs)
+constexpr std::pair<T, T>
+polynomial_valder(const T& x, const Container& coeffs)
 {
   // Use Horner's method to evaluate polynomial and its derivative at the
   // same time
@@ -83,22 +87,48 @@ polynomial_der(const T& x, const Container& coeffs)
     q = p + x * q;
     p = *c + x * p;
   }
-  return q;
+  return {p, q};
+}
+
+/// Evaluate the the derivative of a polynomial of arbitrary order.
+///
+/// \param x      Where to evaluate the derivative.
+/// \param coeffs ReversibleContainer with n+1 coefficients.
+///
+/// The coefficients must be given in increasing order. E.g. a second order
+/// polynomial has three coefficients c0, c1, c2 that define the derivative
+///
+///     df(x)/dx = 0 + c1 + 2*c2*x
+///
+template<typename T, typename Container>
+constexpr T
+polynomial_der(const T& x, const Container& coeffs)
+{
+  return polynomial_valder(x, coeffs).second;
 }
 
 /// Evaluate a polynomial with an order fixed at compile time.
 template<typename T, typename U>
-constexpr T
+constexpr auto
 polynomial_val(const T& x, std::initializer_list<U> coeffs)
 {
   return polynomial_val<T, std::initializer_list<U>>(x, coeffs);
 }
-/// Evaluatethe derivative of a polynomial with an order fixed at compile time.
+
+/// Evaluate the derivative of a polynomial with an order fixed at compile time.
 template<typename T, typename U>
-constexpr T
+constexpr auto
 polynomial_der(const T& x, std::initializer_list<U> coeffs)
 {
   return polynomial_der<T, std::initializer_list<U>>(x, coeffs);
+}
+
+/// Evaluate the derivative of a polynomial with an order fixed at compile time.
+template<typename T, typename U>
+constexpr auto
+polynomial_valder(const T& x, std::initializer_list<U> coeffs)
+{
+  return polynomial_valder<T, std::initializer_list<U>>(x, coeffs);
 }
 
 } // namespace dfe

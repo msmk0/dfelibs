@@ -126,8 +126,10 @@ Evaluate polynomial functions and their derivatives using either a
 std:vector<double> coeffs = {0.0, 2.0, 3.0, 4.0};
 // evaluate f(x) = 2*x + 3*x^2 + 4*x^3 at x=-1.0
 double y = dfe::polynomial_val(-1.0, coeffs);
-// evaluate df(x) / dx at x=-0.5
+// evaluate df(x)/dx at x=-0.5
 double dy = dfe::polynomial_der(-0.5, coeffs);
+// evaluate both f(x) and df(x)/dx at x=2.0 at the same time
+std::pair<double, double> ydy = dfe::polynomial_valder(2.0, coeffs);
 ```
 
 or using the coefficients directly for fixed order polynomials:

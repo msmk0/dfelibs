@@ -9,6 +9,18 @@
 
 #include <dfe_poly.hpp>
 
+// make std::pair printable to allow direct comparision w/ boost::test
+
+namespace std {
+template<typename T>
+inline ostream&
+operator<<(ostream& os, const pair<T, T>& x)
+{
+  os << "{" << x.first << ", " << x.second << "}";
+  return os;
+};
+} // namespace std
+
 // test different input container types
 
 #define COEFFS \
@@ -18,11 +30,13 @@
 constexpr double X0 = 0.5;
 constexpr double Y0 = 2.065625;
 constexpr double D0 = 2.2687500000000003;
+constexpr std::pair<double, double> YD0 = {Y0, D0};
 
 BOOST_AUTO_TEST_CASE(poly_initializerlist)
 {
   BOOST_TEST(dfe::polynomial_val(X0, COEFFS) == Y0);
   BOOST_TEST(dfe::polynomial_der(X0, COEFFS) == D0);
+  BOOST_TEST(dfe::polynomial_valder(X0, COEFFS) == YD0);
 }
 
 BOOST_AUTO_TEST_CASE(poly_array)
@@ -30,18 +44,23 @@ BOOST_AUTO_TEST_CASE(poly_array)
   double coeffs[] = COEFFS;
   BOOST_TEST(dfe::polynomial_val(X0, coeffs) == Y0);
   BOOST_TEST(dfe::polynomial_der(X0, coeffs) == D0);
+  BOOST_TEST(dfe::polynomial_valder(X0, coeffs) == YD0);
 }
 
 BOOST_AUTO_TEST_CASE(poly_stdarray)
 {
-  BOOST_TEST(dfe::polynomial_val(X0, std::array<double, 4>(COEFFS)) == Y0);
-  BOOST_TEST(dfe::polynomial_der(X0, std::array<double, 4>(COEFFS)) == D0);
+  std::array<double, 4> coeffs = COEFFS;
+  BOOST_TEST(dfe::polynomial_val(X0, coeffs) == Y0);
+  BOOST_TEST(dfe::polynomial_der(X0, coeffs) == D0);
+  BOOST_TEST(dfe::polynomial_valder(X0, coeffs) == YD0);
 }
 
 BOOST_AUTO_TEST_CASE(poly_stdvector)
 {
-  BOOST_TEST(dfe::polynomial_val(X0, std::vector<double>(COEFFS)) == Y0);
-  BOOST_TEST(dfe::polynomial_der(X0, std::vector<double>(COEFFS)) == D0);
+  std::vector<double> coeffs = COEFFS;
+  BOOST_TEST(dfe::polynomial_val(X0, coeffs) == Y0);
+  BOOST_TEST(dfe::polynomial_der(X0, coeffs) == D0);
+  BOOST_TEST(dfe::polynomial_valder(X0, coeffs) == YD0);
 }
 
 // use std::valarray to calculate polynomial for multiple x values at once
