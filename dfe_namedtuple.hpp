@@ -62,12 +62,13 @@ class CsvNamedtupleWriter {
 public:
   CsvNamedtupleWriter() = delete;
   CsvNamedtupleWriter(const CsvNamedtupleWriter&) = delete;
-  CsvNamedtupleWriter& operator=(const CsvNamedtupleWriter&) = delete;
   CsvNamedtupleWriter(CsvNamedtupleWriter&&) = default;
-  CsvNamedtupleWriter& operator=(CsvNamedtupleWriter&&) = default;
   ~CsvNamedtupleWriter() = default;
+  CsvNamedtupleWriter& operator=(const CsvNamedtupleWriter&) = delete;
+  CsvNamedtupleWriter& operator=(CsvNamedtupleWriter&&) = default;
+
   /// Create a csv file at the given path. Overwrites existing data.
-  CsvNamedtupleWriter(std::string path);
+  CsvNamedtupleWriter(const std::string& path);
 
   /// Append a record to the end of the file.
   void append(const Namedtuple& record);
@@ -82,12 +83,13 @@ class TsvNamedtupleWriter {
 public:
   TsvNamedtupleWriter() = delete;
   TsvNamedtupleWriter(const TsvNamedtupleWriter&) = delete;
-  TsvNamedtupleWriter& operator=(const TsvNamedtupleWriter&) = delete;
   TsvNamedtupleWriter(TsvNamedtupleWriter&&) = default;
-  TsvNamedtupleWriter& operator=(TsvNamedtupleWriter&&) = default;
   ~TsvNamedtupleWriter() = default;
+  TsvNamedtupleWriter& operator=(const TsvNamedtupleWriter&) = delete;
+  TsvNamedtupleWriter& operator=(TsvNamedtupleWriter&&) = default;
+
   /// Create a tsv file at the given path. Overwrites existing data.
-  TsvNamedtupleWriter(std::string path);
+  TsvNamedtupleWriter(const std::string& path);
 
   /// Append a record to the end of the file.
   void append(const Namedtuple& record);
@@ -105,12 +107,13 @@ class NpyNamedtupleWriter {
 public:
   NpyNamedtupleWriter() = delete;
   NpyNamedtupleWriter(const NpyNamedtupleWriter&) = delete;
-  NpyNamedtupleWriter& operator=(const NpyNamedtupleWriter&) = delete;
   NpyNamedtupleWriter(NpyNamedtupleWriter&&) = default;
-  NpyNamedtupleWriter& operator=(NpyNamedtupleWriter&&) = default;
-  /// Create a npy file at the given path. Overwrites existing data.
-  NpyNamedtupleWriter(std::string path);
   ~NpyNamedtupleWriter();
+  NpyNamedtupleWriter& operator=(const NpyNamedtupleWriter&) = delete;
+  NpyNamedtupleWriter& operator=(NpyNamedtupleWriter&&) = default;
+
+  /// Create a npy file at the given path. Overwrites existing data.
+  NpyNamedtupleWriter(const std::string& path);
 
   /// Append a record to the end of the file.
   void append(const Namedtuple& record);
@@ -169,7 +172,7 @@ print_tuple(
 namespace namedtuple_impl {
 namespace {
 
-// write values from a tuple in a single line with variable separator
+// write values from a tuple in a single line with variable separator.
 template<typename TupleLike, std::size_t... I>
 inline void
 write_line(
@@ -193,7 +196,8 @@ write_line(
 } // namespace namedtuple_impl
 
 template<typename Namedtuple>
-inline CsvNamedtupleWriter<Namedtuple>::CsvNamedtupleWriter(std::string path)
+inline CsvNamedtupleWriter<Namedtuple>::CsvNamedtupleWriter(
+  const std::string& path)
 {
   // make our life easier. always throw on error
   m_file.exceptions(std::ofstream::badbit | std::ofstream::failbit);
@@ -214,7 +218,8 @@ CsvNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
 }
 
 template<typename Namedtuple>
-inline TsvNamedtupleWriter<Namedtuple>::TsvNamedtupleWriter(std::string path)
+inline TsvNamedtupleWriter<Namedtuple>::TsvNamedtupleWriter(
+  const std::string& path)
 {
   // make our life easier. always throw on error
   m_file.exceptions(std::ofstream::badbit | std::ofstream::failbit);
@@ -337,7 +342,8 @@ write_npy_record(
 } // namespace namedtuple_impl
 
 template<typename Namedtuple>
-inline NpyNamedtupleWriter<Namedtuple>::NpyNamedtupleWriter(std::string path)
+inline NpyNamedtupleWriter<Namedtuple>::NpyNamedtupleWriter(
+  const std::string& path)
   : m_fixed_header_length(0)
   , m_num_tuples(0)
 {
