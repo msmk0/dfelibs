@@ -33,6 +33,7 @@
 #include <cstring>
 #include <fstream>
 #include <iomanip>
+#include <limits>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -72,7 +73,8 @@ public:
   ///
   /// \param path       Path to the output file
   /// \param delimiter  Delimiter to separate values within one record
-  TextNamedtupleWriter(const std::string& path, char delimiter);
+  /// \param precision  Output floating point precision
+  TextNamedtupleWriter(const std::string& path, char delimiter, int precision);
 
   /// Append a record to the file.
   void append(const Namedtuple& record);
@@ -90,8 +92,10 @@ template<typename Namedtuple>
 class CsvNamedtupleWriter : public TextNamedtupleWriter<Namedtuple> {
 public:
   /// Create a csv file at the given path. Overwrites existing data.
-  CsvNamedtupleWriter(const std::string& path)
-    : TextNamedtupleWriter<Namedtuple>(path, ',')
+  CsvNamedtupleWriter(
+    const std::string& path,
+    int precision = (std::numeric_limits<double>::max_digits10 + 1))
+    : TextNamedtupleWriter<Namedtuple>(path, ',', precision)
   {
   }
 };
@@ -101,8 +105,10 @@ template<typename Namedtuple>
 class TsvNamedtupleWriter : public TextNamedtupleWriter<Namedtuple> {
 public:
   /// Create a tsv file at the given path. Overwrites existing data.
-  TsvNamedtupleWriter(const std::string& path)
-    : TextNamedtupleWriter<Namedtuple>(path, '\t')
+  TsvNamedtupleWriter(
+    const std::string& path,
+    int precision = (std::numeric_limits<double>::max_digits10 + 1))
+    : TextNamedtupleWriter<Namedtuple>(path, '\t', precision)
   {
   }
 };
@@ -180,13 +186,15 @@ print_tuple(
 
 template<typename Namedtuple>
 inline TextNamedtupleWriter<Namedtuple>::TextNamedtupleWriter(
-  const std::string& path, char delimiter)
+  const std::string& path, char delimiter, int precision)
   : m_delimiter(delimiter)
 {
   // make our life easier. always throw on error
   m_file.exceptions(std::ofstream::badbit | std::ofstream::failbit);
   m_file.open(
     path, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
+  // set output precision for floating point values
+  m_file.precision(precision);
   // write column names as header
   write_line(Namedtuple::names(), std::make_index_sequence<Namedtuple::N>{});
 }
