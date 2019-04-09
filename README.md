@@ -93,9 +93,9 @@ struct Record {
 and write it to disk in multiple formats:
 
 ```cpp
-dfe::CsvNamedtupleWriter csv("records.csv"); // or
-dfe::TsvNamedtupleWriter tsv("records.tsv"); // or
-dfe::NpyNamedtupleWriter npy("records.npy");
+dfe::CsvNamedtupleWriter<Record> csv("records.csv"); // or
+dfe::TsvNamedtupleWriter<Record> tsv("records.tsv"); // or
+dfe::NpyNamedtupleWriter<Record> npy("records.npy");
 
 csv.append(Record{1, 1.4, -2}); // same call for other writers
 ```
@@ -112,7 +112,15 @@ or tab-separated text values
     1       1.4     -2
     ...
 
-or binary [NPY][npy] data.
+or binary [NPY][npy] data. Data stored in one of the text-based formats can
+also be read back in:
+
+```cpp
+dfe::TsvNamedtupleReader<Record> tsv("records.tsv");
+
+Record data;
+tsv.read(data);
+```
 
 Poly
 ----
