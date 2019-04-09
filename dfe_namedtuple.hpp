@@ -115,8 +115,8 @@ public:
 
 /// Write records into a binary NumPy-compatible `.npy` file.
 ///
-/// See https://docs.scipy.org/doc/numpy/neps/npy-format.html for a detailed
-/// explanation of the file format.
+/// See https://docs.scipy.org/doc/numpy/reference/generated/numpy.lib.format.html
+/// for an explanation of the file format.
 template<typename Namedtuple>
 class NpyNamedtupleWriter {
 public:
