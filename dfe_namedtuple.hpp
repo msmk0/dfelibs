@@ -40,7 +40,7 @@
 
 /// Enable selected members of a class or struct to be used as an named tuple.
 #define DFE_NAMEDTUPLE(name, members...) \
-  static constexpr size_t N = \
+  static constexpr std::size_t N = \
     std::tuple_size<decltype(std::make_tuple(members))>::value; \
   static std::array<std::string, N> names() \
   { \
@@ -173,7 +173,7 @@ print_tuple(
   std::ostream& os, const Tuple& t, const Names& n, std::index_sequence<I...>)
 {
   using swallow = int[];
-  int idx = 0;
+  std::size_t idx = 0;
   (void)swallow{0, (void(
                       os << ((0 < idx++) ? " " : "") << std::get<I>(n) << "="
                          << std::get<I>(t)),
