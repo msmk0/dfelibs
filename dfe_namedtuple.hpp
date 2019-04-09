@@ -135,6 +135,8 @@ public:
 
 private:
   void write_header(std::size_t num_tuples);
+  template<typename TupleLike, std::size_t... I>
+  void write_record(const TupleLike& values, std::index_sequence<I...>);
 
   std::ofstream m_file;
   std::size_t m_fixed_header_length;
@@ -312,19 +314,6 @@ dtypes_description(const T& t)
   return descr;
 }
 
-template<typename TupleLike, std::size_t... I>
-inline void
-write_npy_record(
-  std::ostream& os, const TupleLike& values, std::index_sequence<I...>)
-{
-  // see write implementation in csv writer for explanation
-  using swallow = int[];
-  (void)swallow{0, (void(os.write(
-                      reinterpret_cast<const char*>(&std::get<I>(values)),
-                      sizeof(typename std::tuple_element<I, TupleLike>::type))),
-                    0)...};
-}
-
 } // namespace
 } // namespace namedtuple_impl
 
@@ -357,8 +346,7 @@ template<typename Namedtuple>
 inline void
 NpyNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
 {
-  namedtuple_impl::write_npy_record(
-    m_file, record.to_tuple(), std::make_index_sequence<Namedtuple::N>{});
+  write_record(record.to_tuple(), std::make_index_sequence<Namedtuple::N>{});
   m_num_tuples += 1;
 }
 
@@ -399,6 +387,20 @@ NpyNamedtupleWriter<Namedtuple>::write_header(std::size_t num_tuples)
   header[9] = static_cast<char>(header_length >> 8);
   m_file.seekp(0);
   m_file.write(header.data(), header.size());
+}
+
+template<typename Namedtuple>
+template<typename TupleLike, std::size_t... I>
+inline void
+NpyNamedtupleWriter<Namedtuple>::write_record(
+  const TupleLike& values, std::index_sequence<I...>)
+{
+  // see write_line implementation in text writer for explanation
+  using swallow = int[];
+  (void)swallow{0, (void(m_file.write(
+                      reinterpret_cast<const char*>(&std::get<I>(values)),
+                      sizeof(typename std::tuple_element<I, TupleLike>::type))),
+                    0)...};
 }
 
 } // namespace dfe
