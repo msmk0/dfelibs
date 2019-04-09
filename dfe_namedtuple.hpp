@@ -29,6 +29,7 @@
 #include <endian.h>
 
 #include <array>
+#include <cstdint>
 #include <cstring>
 #include <fstream>
 #include <iomanip>
@@ -56,46 +57,54 @@
 
 namespace dfe {
 
-/// Write records as comma-separated values into a text file.
+/// Write records as delimiter-separated values into a text file.
 template<typename Namedtuple>
-class CsvNamedtupleWriter {
+class TextNamedtupleWriter {
 public:
-  CsvNamedtupleWriter() = delete;
-  CsvNamedtupleWriter(const CsvNamedtupleWriter&) = delete;
-  CsvNamedtupleWriter(CsvNamedtupleWriter&&) = default;
-  ~CsvNamedtupleWriter() = default;
-  CsvNamedtupleWriter& operator=(const CsvNamedtupleWriter&) = delete;
-  CsvNamedtupleWriter& operator=(CsvNamedtupleWriter&&) = default;
+  TextNamedtupleWriter() = delete;
+  TextNamedtupleWriter(const TextNamedtupleWriter&) = delete;
+  TextNamedtupleWriter(TextNamedtupleWriter&&) = default;
+  ~TextNamedtupleWriter() = default;
+  TextNamedtupleWriter& operator=(const TextNamedtupleWriter&) = delete;
+  TextNamedtupleWriter& operator=(TextNamedtupleWriter&&) = default;
 
-  /// Create a csv file at the given path. Overwrites existing data.
-  CsvNamedtupleWriter(const std::string& path);
+  /// Create a file at the given path. Overwrites existing data.
+  ///
+  /// \param path       Path to the output file
+  /// \param delimiter  Delimiter to separate values within one record
+  TextNamedtupleWriter(const std::string& path, char delimiter);
 
-  /// Append a record to the end of the file.
+  /// Append a record to the file.
   void append(const Namedtuple& record);
 
 private:
+  template<typename TupleLike, std::size_t... I>
+  void write_line(const TupleLike& values, std::index_sequence<I...>);
+
   std::ofstream m_file;
+  char m_delimiter;
+};
+
+/// Write records as a comma-separated values into a text file.
+template<typename Namedtuple>
+class CsvNamedtupleWriter : public TextNamedtupleWriter<Namedtuple> {
+public:
+  /// Create a csv file at the given path. Overwrites existing data.
+  CsvNamedtupleWriter(const std::string& path)
+    : TextNamedtupleWriter<Namedtuple>(path, ',')
+  {
+  }
 };
 
 /// Write records as a tab-separated values into a text file.
 template<typename Namedtuple>
-class TsvNamedtupleWriter {
+class TsvNamedtupleWriter : public TextNamedtupleWriter<Namedtuple> {
 public:
-  TsvNamedtupleWriter() = delete;
-  TsvNamedtupleWriter(const TsvNamedtupleWriter&) = delete;
-  TsvNamedtupleWriter(TsvNamedtupleWriter&&) = default;
-  ~TsvNamedtupleWriter() = default;
-  TsvNamedtupleWriter& operator=(const TsvNamedtupleWriter&) = delete;
-  TsvNamedtupleWriter& operator=(TsvNamedtupleWriter&&) = default;
-
   /// Create a tsv file at the given path. Overwrites existing data.
-  TsvNamedtupleWriter(const std::string& path);
-
-  /// Append a record to the end of the file.
-  void append(const Namedtuple& record);
-
-private:
-  std::ofstream m_file;
+  TsvNamedtupleWriter(const std::string& path)
+    : TextNamedtupleWriter<Namedtuple>(path, '\t')
+  {
+  }
 };
 
 /// Write records into a binary NumPy-compatible `.npy` file.
@@ -167,17 +176,33 @@ print_tuple(
 } // namespace
 } // namespace namedtuple_impl
 
-// implementation text writers
+// implementation text writer
 
-namespace namedtuple_impl {
-namespace {
+template<typename Namedtuple>
+inline TextNamedtupleWriter<Namedtuple>::TextNamedtupleWriter(
+  const std::string& path, char delimiter)
+  : m_delimiter(delimiter)
+{
+  // make our life easier. always throw on error
+  m_file.exceptions(std::ofstream::badbit | std::ofstream::failbit);
+  m_file.open(
+    path, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
+  // write column names as header
+  write_line(Namedtuple::names(), std::make_index_sequence<Namedtuple::N>{});
+}
 
-// write values from a tuple in a single line with variable separator.
-template<typename TupleLike, std::size_t... I>
+template<typename Namedtuple>
 inline void
-write_line(
-  std::ostream& os, const char* separator, const TupleLike& values,
-  std::index_sequence<I...>)
+TextNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
+{
+  write_line(record.to_tuple(), std::make_index_sequence<Namedtuple::N>{});
+}
+
+template<typename Namedtuple>
+template<typename TupleLike, std::size_t... I>
+void
+TextNamedtupleWriter<Namedtuple>::write_line(
+  const TupleLike& values, std::index_sequence<I...>)
 {
   // this is a bit like magic, here is whats going on:
   // the (void(<expr>), 0) expression evaluates <expr>, ignores its return value
@@ -186,57 +211,11 @@ write_line(
   // but helpful function). The ... pack expansion creates this expression for
   // each entry in the index pack I, effectively looping over the indices.
   using swallow = int[];
-  int col = 0;
-  (void)swallow{
-    0, (void(os << (0 < col++ ? separator : "") << std::get<I>(values)), 0)...};
-  os << '\n';
-}
-
-} // namespace
-} // namespace namedtuple_impl
-
-template<typename Namedtuple>
-inline CsvNamedtupleWriter<Namedtuple>::CsvNamedtupleWriter(
-  const std::string& path)
-{
-  // make our life easier. always throw on error
-  m_file.exceptions(std::ofstream::badbit | std::ofstream::failbit);
-  m_file.open(
-    path, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
-  // write column names as header
-  namedtuple_impl::write_line(
-    m_file, ",", Namedtuple::names(),
-    std::make_index_sequence<Namedtuple::N>{});
-}
-
-template<typename Namedtuple>
-inline void
-CsvNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
-{
-  namedtuple_impl::write_line(
-    m_file, ",", record.to_tuple(), std::make_index_sequence<Namedtuple::N>{});
-}
-
-template<typename Namedtuple>
-inline TsvNamedtupleWriter<Namedtuple>::TsvNamedtupleWriter(
-  const std::string& path)
-{
-  // make our life easier. always throw on error
-  m_file.exceptions(std::ofstream::badbit | std::ofstream::failbit);
-  m_file.open(
-    path, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
-  // write column names as header
-  namedtuple_impl::write_line(
-    m_file, "\t", Namedtuple::names(),
-    std::make_index_sequence<Namedtuple::N>{});
-}
-
-template<typename Namedtuple>
-inline void
-TsvNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
-{
-  namedtuple_impl::write_line(
-    m_file, "\t", record.to_tuple(), std::make_index_sequence<Namedtuple::N>{});
+  std::size_t col = 0;
+  (void)swallow{0, (void(
+                      m_file << std::get<I>(values)
+                             << ((++col < sizeof...(I)) ? m_delimiter : '\n')),
+                    0)...};
 }
 
 // implementation npy writer
