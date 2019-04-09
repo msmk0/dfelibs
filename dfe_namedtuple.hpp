@@ -34,21 +34,35 @@
 #include <fstream>
 #include <iomanip>
 #include <limits>
+#include <sstream>
 #include <string>
 #include <tuple>
 #include <utility>
 
 /// Enable selected members of a class or struct to be used as an named tuple.
+///
+/// Provides access to the names via `::names()`, allows conversion
+/// to an equivalent `std::tuple<...>` object via `.to_tuple()`, and enables
+/// assignment from an equivalent `std::tuple<...>`.
 #define DFE_NAMEDTUPLE(name, members...) \
-  static constexpr std::size_t N = \
-    std::tuple_size<decltype(std::make_tuple(members))>::value; \
+  using Tuple = decltype(std::make_tuple(members)); \
+  static constexpr std::size_t N = std::tuple_size<Tuple>::value; \
   static std::array<std::string, N> names() \
   { \
     return ::dfe::namedtuple_impl::unstringify_names<N>((#members)); \
   } \
-  auto to_tuple() const->decltype(std::make_tuple(members)) \
+  Tuple to_tuple() const { return std::make_tuple(members); } \
+  template<typename... U> \
+  name& operator=(const std::tuple<U...>& other) \
   { \
-    return std::make_tuple(members); \
+    std::tie(members) = other; \
+    return *this; \
+  } \
+  template<typename... U> \
+  name& operator=(std::tuple<U...>&& other) \
+  { \
+    std::tie(members) = std::forward<std::tuple<U...>>(other); \
+    return *this; \
   } \
   friend std::ostream& operator<<(std::ostream& os, const name& x) \
   { \
@@ -113,9 +127,75 @@ public:
   }
 };
 
+/// Read records as delimiter-separated values from a text file.
+///
+/// The reader is strict about its input format. Each row **must** contain
+/// exactly as many columns as there are values within the record. Every row
+/// **must** end with a single newline. The first row is **alway** interpreted
+/// as a header but can be skipped. If it is not skipped, the header names
+/// in each column **must** match exactly to the record member names.
+template<typename Namedtuple>
+class TextNamedtupleReader {
+public:
+  TextNamedtupleReader() = delete;
+  TextNamedtupleReader(const TextNamedtupleReader&) = delete;
+  TextNamedtupleReader(TextNamedtupleReader&&) = default;
+  ~TextNamedtupleReader() = default;
+  TextNamedtupleReader& operator=(const TextNamedtupleReader&) = delete;
+  TextNamedtupleReader& operator=(TextNamedtupleReader&&) = default;
+
+  /// Open a file at the given path.
+  ///
+  /// \param path           Path to the input file
+  /// \param delimiter      Delimiter to separate values within one record
+  /// \param verify_header  false to check header column names, false to skip
+  TextNamedtupleReader(
+    const std::string& path, char delimiter, bool verify_header);
+
+  /// Read the next record from the file.
+  ///
+  /// \returns true   if a record was successfully read
+  /// \returns false  if no more records are available
+  bool read(Namedtuple& record);
+
+private:
+  bool read_line();
+  template<typename TupleLike, std::size_t... I>
+  TupleLike parse_line(std::index_sequence<I...>) const;
+
+  std::ifstream m_file;
+  char m_delimiter;
+  std::string m_line;
+  std::array<std::string, Namedtuple::N> m_columns;
+  std::size_t m_num_lines;
+};
+
+/// Read records from a comma-separated file.
+template<typename Namedtuple>
+class CsvNamedtupleReader : public TextNamedtupleReader<Namedtuple> {
+public:
+  /// Open a csv file at the given path.
+  CsvNamedtupleReader(const std::string& path, bool verify_header = true)
+    : TextNamedtupleReader<Namedtuple>(path, ',', verify_header)
+  {
+  }
+};
+
+/// Read records from a tab-separated file.
+template<typename Namedtuple>
+class TsvNamedtupleReader : public TextNamedtupleReader<Namedtuple> {
+public:
+  /// Open a tsv file at the given path.
+  TsvNamedtupleReader(const std::string& path, bool verify_header = true)
+    : TextNamedtupleReader<Namedtuple>(path, '\t', verify_header)
+  {
+  }
+};
+
 /// Write records into a binary NumPy-compatible `.npy` file.
 ///
-/// See https://docs.scipy.org/doc/numpy/reference/generated/numpy.lib.format.html
+/// See
+/// https://docs.scipy.org/doc/numpy/reference/generated/numpy.lib.format.html
 /// for an explanation of the file format.
 template<typename Namedtuple>
 class NpyNamedtupleWriter {
@@ -226,6 +306,96 @@ TextNamedtupleWriter<Namedtuple>::write_line(
                       m_file << std::get<I>(values)
                              << ((++col < sizeof...(I)) ? m_delimiter : '\n')),
                     0)...};
+}
+
+// implementation text reader
+
+template<typename Namedtuple>
+TextNamedtupleReader<Namedtuple>::TextNamedtupleReader(
+  const std::string& path, char delimiter, bool verify_header)
+  : m_delimiter(delimiter)
+  , m_num_lines(0)
+{
+  // make our life easier. always throw on error
+  m_file.exceptions(std::ofstream::badbit);
+  m_file.open(path, std::ios_base::binary | std::ios_base::in);
+  if (verify_header) {
+    if (!read_line()) { throw std::runtime_error("Invalid file header"); };
+    const auto& expected = Namedtuple::names();
+    for (std::size_t i = 0; i < Namedtuple::N; ++i) {
+      if (expected[i] != m_columns[i]) {
+        throw std::runtime_error(
+          "Invalid header column=" + std::to_string(i) + " expected='" +
+          expected[i] + "' seen='" + m_columns[i] + "'");
+      }
+    }
+  } else {
+    m_file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+  }
+}
+
+template<typename Namedtuple>
+bool
+TextNamedtupleReader<Namedtuple>::read(Namedtuple& record)
+{
+  if (!read_line()) { return false; }
+  record = parse_line<typename Namedtuple::Tuple>(
+    std::make_index_sequence<Namedtuple::N>{});
+  return true;
+}
+
+template<typename Namedtuple>
+bool
+TextNamedtupleReader<Namedtuple>::read_line()
+{
+  // read a full line
+  std::getline(m_file, m_line, '\n');
+  if (!m_file.good()) { return false; }
+  // split into columns
+  std::size_t icol = 0;
+  std::size_t pos = 0;
+  for (; (icol < m_columns.size()) and (pos < m_line.size()); ++icol) {
+    std::size_t token = m_line.find(m_delimiter, pos);
+    if (token == pos) {
+      throw std::runtime_error(
+        "Empty column " + std::to_string(icol) + " in line " +
+        std::to_string(m_num_lines));
+    }
+    if (token == std::string::npos) {
+      // we are at the last column
+      m_columns[icol] = m_line.substr(pos);
+      pos = m_line.size();
+    } else {
+      // exclude the delimiter from the extracted column
+      m_columns[icol] = m_line.substr(pos, token - pos);
+      // continue next search after the delimiter
+      pos = token + 1;
+    }
+  }
+  if (icol < m_columns.size()) {
+    throw std::runtime_error(
+      "Too few columns in line " + std::to_string(m_num_lines));
+  }
+  if (pos < m_line.size()) {
+    throw std::runtime_error(
+      "Too many columns in line " + std::to_string(m_num_lines));
+  }
+  m_num_lines += 1;
+  return true;
+}
+
+template<typename Namedtuple>
+template<typename TupleLike, std::size_t... I>
+TupleLike
+TextNamedtupleReader<Namedtuple>::parse_line(std::index_sequence<I...>) const
+{
+  // see write_line implementation in text writer for explanation
+  TupleLike values;
+  std::istringstream is;
+  using swallow = int[];
+  (void)swallow{
+    0, ((std::istringstream(m_columns[I]) >> std::get<I>(values)), 0)...};
+  return values;
 }
 
 // implementation npy writer
