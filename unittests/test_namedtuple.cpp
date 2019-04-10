@@ -76,7 +76,7 @@ BOOST_AUTO_TEST_CASE(namedtuple_csv)
 {
   // write some data
   {
-    dfe::CsvNamedtupleWriter<Record> writer("test.csv");
+    dfe::CsvNamedTupleWriter<Record> writer("test.csv");
 
     for (size_t i = 0; i < kNRecords; ++i) {
       BOOST_CHECK_NO_THROW(writer.append(make_record(i)));
@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_CASE(namedtuple_csv)
   }
   // read the data back
   {
-    dfe::CsvNamedtupleReader<Record> reader("test.csv");
+    dfe::CsvNamedTupleReader<Record> reader("test.csv");
 
     Record record;
     size_t n = 0;
@@ -104,7 +104,7 @@ BOOST_AUTO_TEST_CASE(namedtuple_tsv)
 {
   // write some data
   {
-    dfe::TsvNamedtupleWriter<Record> writer("test.tsv");
+    dfe::TsvNamedTupleWriter<Record> writer("test.tsv");
 
     for (size_t i = 0; i < kNRecords; ++i) {
       BOOST_CHECK_NO_THROW(writer.append(make_record(i)));
@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE(namedtuple_tsv)
   }
   // read the data back
   {
-    dfe::TsvNamedtupleReader<Record> reader("test.tsv");
+    dfe::TsvNamedTupleReader<Record> reader("test.tsv");
 
     Record record;
     size_t n = 0;
@@ -132,7 +132,7 @@ BOOST_AUTO_TEST_CASE(namedtuple_npy)
 {
   // write some data
   {
-    dfe::NpyNamedtupleWriter<Record> writer("test.npy");
+    dfe::NpyNamedTupleWriter<Record> writer("test.npy");
 
     for (size_t i = 0; i < kNRecords; ++i) {
       BOOST_CHECK_NO_THROW(writer.append(make_record(i)));
@@ -155,7 +155,7 @@ make_data_path(const char* filename)
 
 BOOST_AUTO_TEST_CASE(namedtuple_tsv_reader)
 {
-  using Reader = dfe::CsvNamedtupleReader<Record>;
+  using Reader = dfe::CsvNamedTupleReader<Record>;
 
   Record r;
   BOOST_CHECK_THROW(Reader("does/not/exist.tsv"), std::runtime_error);

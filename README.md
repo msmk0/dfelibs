@@ -74,8 +74,8 @@ h1.fill(0.25, 4.0, 65);      // axis 1 overflow
 h1.fill(2.25, 1.0, 65);      // fails, due to axis 0 overflow
 ```
 
-Namedtuple
-----------
+Named tuple
+-----------
 
 Add some self-awareness to a POD type
 
@@ -93,9 +93,9 @@ struct Record {
 and write it to disk in multiple formats:
 
 ```cpp
-dfe::CsvNamedtupleWriter<Record> csv("records.csv"); // or
-dfe::TsvNamedtupleWriter<Record> tsv("records.tsv"); // or
-dfe::NpyNamedtupleWriter<Record> npy("records.npy");
+dfe::CsvNamedTupleWriter<Record> csv("records.csv"); // or
+dfe::TsvNamedTupleWriter<Record> tsv("records.tsv"); // or
+dfe::NpyNamedTupleWriter<Record> npy("records.npy");
 
 csv.append(Record{1, 1.4, -2}); // same call for other writers
 ```
@@ -116,7 +116,7 @@ or binary [NPY][npy] data. Data stored in one of the text-based formats can
 also be read back in:
 
 ```cpp
-dfe::TsvNamedtupleReader<Record> tsv("records.tsv");
+dfe::TsvNamedTupleReader<Record> tsv("records.tsv");
 
 Record data;
 tsv.read(data);

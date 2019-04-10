@@ -1,13 +1,19 @@
+/// \file
+/// \brief Demonstrate the basic named tuple writer functionality
+
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
+#include <random>
 
 #include <dfe_namedtuple.hpp>
 
 struct Data {
   uint32_t dac0;
   uint32_t temperature;
-  uint32_t timestamp;
+  int64_t timestamp;
   float humidity;
+  int unused;
 
   DFE_NAMEDTUPLE(Data, dac0, temperature, timestamp, humidity);
 };
@@ -15,25 +21,32 @@ struct Data {
 int
 main(int argc, char* argv[])
 {
-  dfe::CsvNamedtupleWriter<Data> csv("test.csv");
-  dfe::TsvNamedtupleWriter<Data> tsv("test.tsv");
-  dfe::NpyNamedtupleWriter<Data> npy("test.npy");
+  // text writers
+  dfe::CsvNamedTupleWriter<Data> csv("test.csv");
+  dfe::TsvNamedTupleWriter<Data> tsv("test.tsv");
+  // numpy writer
+  dfe::NpyNamedTupleWriter<Data> npy("test.npy");
 
-  Data x;
-  x.dac0 = 0;
-  x.temperature = 18289;
-  x.timestamp = 1012;
-  x.humidity = 0.012;
+  // random data generators
+  auto rng = std::ranlux48(12345);
+  auto rnd_dac0 = std::uniform_int_distribution<uint32_t>(32, 511);
+  auto rnd_temp = std::uniform_int_distribution<uint32_t>(2400, 2800);
+  auto rnd_jitr = std::uniform_int_distribution<int64_t>(-10, 10);
+  auto rnd_hmdt = std::normal_distribution<float>(35.0, 5.0);
 
-  for (const auto& name : x.names()) { std::cout << name << std::endl; }
+  for (int i = 0; i < 1024; ++i) {
+    Data x;
+    x.dac0 = rnd_dac0(rng);
+    x.temperature = rnd_temp(rng);
+    x.timestamp = 1000 * i + rnd_jitr(rng);
+    x.humidity = rnd_hmdt(rng);
+    x.unused = i;
 
-  for (uint32_t i = 0; i < 1024; ++i) {
-    x.dac0 = i;
-
-    std::cout << x << std::endl;
     csv.append(x);
     tsv.append(x);
     npy.append(x);
+
+    std::cout << "entry " << i << ": " << x << std::endl;
   }
 
   return EXIT_SUCCESS;

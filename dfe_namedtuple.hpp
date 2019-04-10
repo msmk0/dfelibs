@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 /// \file
-/// \brief   named tuples for data storage
+/// \brief   Named tuples for data storage
 /// \author  Moritz Kiehn <msmk@cern.ch>
 /// \date    2015-06-00, Initial version
 /// \date    2018-02-09, Major rework
@@ -74,25 +74,25 @@
 namespace dfe {
 
 /// Write records as delimiter-separated values into a text file.
-template<typename Namedtuple>
-class TextNamedtupleWriter {
+template<typename NamedTuple>
+class TextNamedTupleWriter {
 public:
-  TextNamedtupleWriter() = delete;
-  TextNamedtupleWriter(const TextNamedtupleWriter&) = delete;
-  TextNamedtupleWriter(TextNamedtupleWriter&&) = default;
-  ~TextNamedtupleWriter() = default;
-  TextNamedtupleWriter& operator=(const TextNamedtupleWriter&) = delete;
-  TextNamedtupleWriter& operator=(TextNamedtupleWriter&&) = default;
+  TextNamedTupleWriter() = delete;
+  TextNamedTupleWriter(const TextNamedTupleWriter&) = delete;
+  TextNamedTupleWriter(TextNamedTupleWriter&&) = default;
+  ~TextNamedTupleWriter() = default;
+  TextNamedTupleWriter& operator=(const TextNamedTupleWriter&) = delete;
+  TextNamedTupleWriter& operator=(TextNamedTupleWriter&&) = default;
 
   /// Create a file at the given path. Overwrites existing data.
   ///
   /// \param path       Path to the output file
   /// \param delimiter  Delimiter to separate values within one record
   /// \param precision  Output floating point precision
-  TextNamedtupleWriter(const std::string& path, char delimiter, int precision);
+  TextNamedTupleWriter(const std::string& path, char delimiter, int precision);
 
   /// Append a record to the file.
-  void append(const Namedtuple& record);
+  void append(const NamedTuple& record);
 
 private:
   template<typename TupleLike, std::size_t... I>
@@ -103,27 +103,27 @@ private:
 };
 
 /// Write records as a comma-separated values into a text file.
-template<typename Namedtuple>
-class CsvNamedtupleWriter : public TextNamedtupleWriter<Namedtuple> {
+template<typename NamedTuple>
+class CsvNamedTupleWriter : public TextNamedTupleWriter<NamedTuple> {
 public:
   /// Create a csv file at the given path. Overwrites existing data.
-  CsvNamedtupleWriter(
+  CsvNamedTupleWriter(
     const std::string& path,
     int precision = (std::numeric_limits<double>::max_digits10 + 1))
-    : TextNamedtupleWriter<Namedtuple>(path, ',', precision)
+    : TextNamedTupleWriter<NamedTuple>(path, ',', precision)
   {
   }
 };
 
 /// Write records as a tab-separated values into a text file.
-template<typename Namedtuple>
-class TsvNamedtupleWriter : public TextNamedtupleWriter<Namedtuple> {
+template<typename NamedTuple>
+class TsvNamedTupleWriter : public TextNamedTupleWriter<NamedTuple> {
 public:
   /// Create a tsv file at the given path. Overwrites existing data.
-  TsvNamedtupleWriter(
+  TsvNamedTupleWriter(
     const std::string& path,
     int precision = (std::numeric_limits<double>::max_digits10 + 1))
-    : TextNamedtupleWriter<Namedtuple>(path, '\t', precision)
+    : TextNamedTupleWriter<NamedTuple>(path, '\t', precision)
   {
   }
 };
@@ -135,29 +135,29 @@ public:
 /// **must** end with a single newline. The first row is **alway** interpreted
 /// as a header but can be skipped. If it is not skipped, the header names
 /// in each column **must** match exactly to the record member names.
-template<typename Namedtuple>
-class TextNamedtupleReader {
+template<typename NamedTuple>
+class TextNamedTupleReader {
 public:
-  TextNamedtupleReader() = delete;
-  TextNamedtupleReader(const TextNamedtupleReader&) = delete;
-  TextNamedtupleReader(TextNamedtupleReader&&) = default;
-  ~TextNamedtupleReader() = default;
-  TextNamedtupleReader& operator=(const TextNamedtupleReader&) = delete;
-  TextNamedtupleReader& operator=(TextNamedtupleReader&&) = default;
+  TextNamedTupleReader() = delete;
+  TextNamedTupleReader(const TextNamedTupleReader&) = delete;
+  TextNamedTupleReader(TextNamedTupleReader&&) = default;
+  ~TextNamedTupleReader() = default;
+  TextNamedTupleReader& operator=(const TextNamedTupleReader&) = delete;
+  TextNamedTupleReader& operator=(TextNamedTupleReader&&) = default;
 
   /// Open a file at the given path.
   ///
   /// \param path           Path to the input file
   /// \param delimiter      Delimiter to separate values within one record
   /// \param verify_header  false to check header column names, false to skip
-  TextNamedtupleReader(
+  TextNamedTupleReader(
     const std::string& path, char delimiter, bool verify_header);
 
   /// Read the next record from the file.
   ///
   /// \returns true   if a record was successfully read
   /// \returns false  if no more records are available
-  bool read(Namedtuple& record);
+  bool read(NamedTuple& record);
 
 private:
   bool read_line();
@@ -167,28 +167,28 @@ private:
   std::ifstream m_file;
   char m_delimiter;
   std::string m_line;
-  std::array<std::string, Namedtuple::N> m_columns;
+  std::array<std::string, NamedTuple::N> m_columns;
   std::size_t m_num_lines;
 };
 
 /// Read records from a comma-separated file.
-template<typename Namedtuple>
-class CsvNamedtupleReader : public TextNamedtupleReader<Namedtuple> {
+template<typename NamedTuple>
+class CsvNamedTupleReader : public TextNamedTupleReader<NamedTuple> {
 public:
   /// Open a csv file at the given path.
-  CsvNamedtupleReader(const std::string& path, bool verify_header = true)
-    : TextNamedtupleReader<Namedtuple>(path, ',', verify_header)
+  CsvNamedTupleReader(const std::string& path, bool verify_header = true)
+    : TextNamedTupleReader<NamedTuple>(path, ',', verify_header)
   {
   }
 };
 
 /// Read records from a tab-separated file.
-template<typename Namedtuple>
-class TsvNamedtupleReader : public TextNamedtupleReader<Namedtuple> {
+template<typename NamedTuple>
+class TsvNamedTupleReader : public TextNamedTupleReader<NamedTuple> {
 public:
   /// Open a tsv file at the given path.
-  TsvNamedtupleReader(const std::string& path, bool verify_header = true)
-    : TextNamedtupleReader<Namedtuple>(path, '\t', verify_header)
+  TsvNamedTupleReader(const std::string& path, bool verify_header = true)
+    : TextNamedTupleReader<NamedTuple>(path, '\t', verify_header)
   {
   }
 };
@@ -198,21 +198,21 @@ public:
 /// See
 /// https://docs.scipy.org/doc/numpy/reference/generated/numpy.lib.format.html
 /// for an explanation of the file format.
-template<typename Namedtuple>
-class NpyNamedtupleWriter {
+template<typename NamedTuple>
+class NpyNamedTupleWriter {
 public:
-  NpyNamedtupleWriter() = delete;
-  NpyNamedtupleWriter(const NpyNamedtupleWriter&) = delete;
-  NpyNamedtupleWriter(NpyNamedtupleWriter&&) = default;
-  ~NpyNamedtupleWriter();
-  NpyNamedtupleWriter& operator=(const NpyNamedtupleWriter&) = delete;
-  NpyNamedtupleWriter& operator=(NpyNamedtupleWriter&&) = default;
+  NpyNamedTupleWriter() = delete;
+  NpyNamedTupleWriter(const NpyNamedTupleWriter&) = delete;
+  NpyNamedTupleWriter(NpyNamedTupleWriter&&) = default;
+  ~NpyNamedTupleWriter();
+  NpyNamedTupleWriter& operator=(const NpyNamedTupleWriter&) = delete;
+  NpyNamedTupleWriter& operator=(NpyNamedTupleWriter&&) = default;
 
   /// Create a npy file at the given path. Overwrites existing data.
-  NpyNamedtupleWriter(const std::string& path);
+  NpyNamedTupleWriter(const std::string& path);
 
   /// Append a record to the end of the file.
-  void append(const Namedtuple& record);
+  void append(const NamedTuple& record);
 
 private:
   void write_header(std::size_t num_tuples);
@@ -267,8 +267,8 @@ print_tuple(
 
 // implementation text writer
 
-template<typename Namedtuple>
-inline TextNamedtupleWriter<Namedtuple>::TextNamedtupleWriter(
+template<typename NamedTuple>
+inline TextNamedTupleWriter<NamedTuple>::TextNamedTupleWriter(
   const std::string& path, char delimiter, int precision)
   : m_delimiter(delimiter)
 {
@@ -279,20 +279,20 @@ inline TextNamedtupleWriter<Namedtuple>::TextNamedtupleWriter(
   // set output precision for floating point values
   m_file.precision(precision);
   // write column names as header
-  write_line(Namedtuple::names(), std::make_index_sequence<Namedtuple::N>{});
+  write_line(NamedTuple::names(), std::make_index_sequence<NamedTuple::N>{});
 }
 
-template<typename Namedtuple>
+template<typename NamedTuple>
 inline void
-TextNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
+TextNamedTupleWriter<NamedTuple>::append(const NamedTuple& record)
 {
-  write_line(record.to_tuple(), std::make_index_sequence<Namedtuple::N>{});
+  write_line(record.to_tuple(), std::make_index_sequence<NamedTuple::N>{});
 }
 
-template<typename Namedtuple>
+template<typename NamedTuple>
 template<typename TupleLike, std::size_t... I>
 void
-TextNamedtupleWriter<Namedtuple>::write_line(
+TextNamedTupleWriter<NamedTuple>::write_line(
   const TupleLike& values, std::index_sequence<I...>)
 {
   // this is a bit like magic, here is whats going on:
@@ -311,8 +311,8 @@ TextNamedtupleWriter<Namedtuple>::write_line(
 
 // implementation text reader
 
-template<typename Namedtuple>
-TextNamedtupleReader<Namedtuple>::TextNamedtupleReader(
+template<typename NamedTuple>
+TextNamedTupleReader<NamedTuple>::TextNamedTupleReader(
   const std::string& path, char delimiter, bool verify_header)
   : m_delimiter(delimiter)
   , m_num_lines(0)
@@ -322,8 +322,8 @@ TextNamedtupleReader<Namedtuple>::TextNamedtupleReader(
   m_file.open(path, std::ios_base::binary | std::ios_base::in);
   if (verify_header) {
     if (!read_line()) { throw std::runtime_error("Invalid file header"); };
-    const auto& expected = Namedtuple::names();
-    for (std::size_t i = 0; i < Namedtuple::N; ++i) {
+    const auto& expected = NamedTuple::names();
+    for (std::size_t i = 0; i < NamedTuple::N; ++i) {
       if (expected[i] != m_columns[i]) {
         throw std::runtime_error(
           "Invalid header column=" + std::to_string(i) + " expected='" +
@@ -335,19 +335,19 @@ TextNamedtupleReader<Namedtuple>::TextNamedtupleReader(
   }
 }
 
-template<typename Namedtuple>
+template<typename NamedTuple>
 bool
-TextNamedtupleReader<Namedtuple>::read(Namedtuple& record)
+TextNamedTupleReader<NamedTuple>::read(NamedTuple& record)
 {
   if (!read_line()) { return false; }
-  record = parse_line<typename Namedtuple::Tuple>(
-    std::make_index_sequence<Namedtuple::N>{});
+  record = parse_line<typename NamedTuple::Tuple>(
+    std::make_index_sequence<NamedTuple::N>{});
   return true;
 }
 
-template<typename Namedtuple>
+template<typename NamedTuple>
 bool
-TextNamedtupleReader<Namedtuple>::read_line()
+TextNamedTupleReader<NamedTuple>::read_line()
 {
   // read a full line
   std::getline(m_file, m_line, '\n');
@@ -385,10 +385,10 @@ TextNamedtupleReader<Namedtuple>::read_line()
   return true;
 }
 
-template<typename Namedtuple>
+template<typename NamedTuple>
 template<typename TupleLike, std::size_t... I>
 TupleLike
-TextNamedtupleReader<Namedtuple>::parse_line(std::index_sequence<I...>) const
+TextNamedTupleReader<NamedTuple>::parse_line(std::index_sequence<I...>) const
 {
   // see write_line implementation in text writer for explanation
   TupleLike values;
@@ -469,8 +469,8 @@ dtypes_description(const T& t)
 } // namespace
 } // namespace namedtuple_impl
 
-template<typename Namedtuple>
-inline NpyNamedtupleWriter<Namedtuple>::NpyNamedtupleWriter(
+template<typename NamedTuple>
+inline NpyNamedTupleWriter<NamedTuple>::NpyNamedTupleWriter(
   const std::string& path)
   : m_fixed_header_length(0)
   , m_num_tuples(0)
@@ -486,25 +486,25 @@ inline NpyNamedtupleWriter<Namedtuple>::NpyNamedtupleWriter(
   write_header(0);
 }
 
-template<typename Namedtuple>
-inline NpyNamedtupleWriter<Namedtuple>::~NpyNamedtupleWriter()
+template<typename NamedTuple>
+inline NpyNamedTupleWriter<NamedTuple>::~NpyNamedTupleWriter()
 {
   if (!m_file.is_open()) { return; }
   write_header(m_num_tuples);
   m_file.close();
 }
 
-template<typename Namedtuple>
+template<typename NamedTuple>
 inline void
-NpyNamedtupleWriter<Namedtuple>::append(const Namedtuple& record)
+NpyNamedTupleWriter<NamedTuple>::append(const NamedTuple& record)
 {
-  write_record(record.to_tuple(), std::make_index_sequence<Namedtuple::N>{});
+  write_record(record.to_tuple(), std::make_index_sequence<NamedTuple::N>{});
   m_num_tuples += 1;
 }
 
-template<typename Namedtuple>
+template<typename NamedTuple>
 inline void
-NpyNamedtupleWriter<Namedtuple>::write_header(std::size_t num_tuples)
+NpyNamedTupleWriter<NamedTuple>::write_header(std::size_t num_tuples)
 {
   std::string header;
   // magic
@@ -518,7 +518,7 @@ NpyNamedtupleWriter<Namedtuple>::write_header(std::size_t num_tuples)
   // python dict w/ data type and size information
   header += '{';
   header +=
-    "'descr': " + namedtuple_impl::dtypes_description(Namedtuple()) + ", ";
+    "'descr': " + namedtuple_impl::dtypes_description(NamedTuple()) + ", ";
   header += "'fortran_order': False, ";
   header += "'shape': (" + std::to_string(num_tuples) + ",), ";
   header += '}';
@@ -541,10 +541,10 @@ NpyNamedtupleWriter<Namedtuple>::write_header(std::size_t num_tuples)
   m_file.write(header.data(), header.size());
 }
 
-template<typename Namedtuple>
+template<typename NamedTuple>
 template<typename TupleLike, std::size_t... I>
 inline void
-NpyNamedtupleWriter<Namedtuple>::write_record(
+NpyNamedTupleWriter<NamedTuple>::write_record(
   const TupleLike& values, std::index_sequence<I...>)
 {
   // see write_line implementation in text writer for explanation
