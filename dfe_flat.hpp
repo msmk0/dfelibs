@@ -74,7 +74,52 @@ private:
   std::vector<T> m_items;
 };
 
-// implementation
+template<typename Key, typename T, typename Compare = std::less<Key>>
+class FlatMap {
+public:
+  /// Return the number of elements in the container.
+  size_t size() const { return m_keys.size(); }
+  /// Return true if an element exists for the given key
+  bool contains(const Key& key) const { return m_keys.contains(key); }
+  /// Read-only access to an element or throw if it does not exists.
+  const T& at(const Key& key) const { return m_items[m_keys.at(key).index]; }
+  /// Writable access to an element or throw if it does not exists.
+  T& at(const Key& key) { return m_items[m_keys.at(key).index]; }
+
+  /// Remove all elements from the container.
+  void clear() { m_keys.clear(), m_items.clear(); }
+  /// Add the element under the given key or replace an existing element.
+  ///
+  /// New elements are constructed or assigned in-place with the parameters
+  /// forwarded to a `T(...)` constructor call.
+  template<typename... Params>
+  void emplace(const Key& key, Params&&... params);
+
+private:
+  struct KeyIndex {
+    Key key;
+    size_t index;
+  };
+  struct KeyCompare {
+    constexpr bool operator()(const KeyIndex& lhs, const KeyIndex& rhs) const
+    {
+      return Compare()(lhs.key, rhs.key);
+    }
+    constexpr bool operator()(const KeyIndex& lhs, const Key& rhs_key) const
+    {
+      return Compare()(lhs.key, rhs_key);
+    }
+    constexpr bool operator()(const Key& lhs_key, const KeyIndex& rhs) const
+    {
+      return Compare()(lhs_key, rhs.key);
+    }
+  };
+
+  FlatSet<KeyIndex, KeyCompare> m_keys;
+  std::vector<T> m_items;
+};
+
+// implementation FlatSet
 
 template<typename T, typename Compare>
 template<typename U>
@@ -117,6 +162,22 @@ FlatSet<T, Compare>::insert_or_assign(const T& t)
     *pos = t;
   } else {
     m_items.insert(pos, t);
+  }
+}
+
+// implementation FlatMap
+
+template<typename Key, typename T, typename Compare>
+template<typename... Params>
+inline void
+FlatMap<Key, T, Compare>::emplace(const Key& key, Params&&... params)
+{
+  auto idx = m_keys.find(key);
+  if (idx != m_keys.end()) {
+    m_items[idx->index] = T(std::forward<Params>(params)...);
+  } else {
+    m_items.emplace_back(std::forward<Params>(params)...);
+    m_keys.insert_or_assign(KeyIndex{key, m_items.size() - 1});
   }
 }
 
