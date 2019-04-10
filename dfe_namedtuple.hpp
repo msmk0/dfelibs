@@ -37,6 +37,7 @@
 #include <sstream>
 #include <string>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 
 /// Enable selected members of a class or struct to be used as an named tuple.
@@ -404,63 +405,44 @@ namespace namedtuple_impl {
 namespace {
 
 #if (__BYTE_ORDER == __LITTLE_ENDIAN) && (__FLOAT_WORD_ORDER == __BYTE_ORDER)
-#define DFE_DTYPE_CODE(c) "<" #c
+#define DFE_NUMPY_DTYPE_CODE(c) "<" #c
 #elif (__BYTE_ORDER == __BIG_ENDIAN) && (__FLOAT_WORD_ORDER == __BYTE_ORDER)
-#define DTYPE_SIGNED_CODE(size) ">" #c
+#define DFE_NUMPY_DTYPE_CODE(size) ">" #c
 #else
 #error Unsupported byte order
 #endif
 template<typename T>
-struct TypeInfo {
-};
+constexpr std::enable_if_t<false, T> kNumpyDtypeCode;
 template<>
-struct TypeInfo<uint8_t> {
-  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(u1); }
-};
+constexpr const char* kNumpyDtypeCode<uint8_t> = DFE_NUMPY_DTYPE_CODE(u1);
 template<>
-struct TypeInfo<uint16_t> {
-  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(u2); }
-};
+constexpr const char* kNumpyDtypeCode<uint16_t> = DFE_NUMPY_DTYPE_CODE(u2);
 template<>
-struct TypeInfo<uint32_t> {
-  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(u4); }
-};
+constexpr const char* kNumpyDtypeCode<uint32_t> = DFE_NUMPY_DTYPE_CODE(u4);
 template<>
-struct TypeInfo<uint64_t> {
-  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(u8); }
-};
+constexpr const char* kNumpyDtypeCode<uint64_t> = DFE_NUMPY_DTYPE_CODE(u8);
 template<>
-struct TypeInfo<int8_t> {
-  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(i1); }
-};
+constexpr const char* kNumpyDtypeCode<int8_t> = DFE_NUMPY_DTYPE_CODE(i1);
 template<>
-struct TypeInfo<int16_t> {
-  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(i2); }
-};
+constexpr const char* kNumpyDtypeCode<int16_t> = DFE_NUMPY_DTYPE_CODE(i2);
 template<>
-struct TypeInfo<int32_t> {
-  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(i4); }
-};
+constexpr const char* kNumpyDtypeCode<int32_t> = DFE_NUMPY_DTYPE_CODE(i4);
 template<>
-struct TypeInfo<int64_t> {
-  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(i8); }
-};
+constexpr const char* kNumpyDtypeCode<int64_t> = DFE_NUMPY_DTYPE_CODE(i8);
 template<>
-struct TypeInfo<float> {
-  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(f4); }
-};
+constexpr const char* kNumpyDtypeCode<float> = DFE_NUMPY_DTYPE_CODE(f4);
 template<>
-struct TypeInfo<double> {
-  static constexpr const char* dtype_code() { return DFE_DTYPE_CODE(f8); }
-};
+constexpr const char* kNumpyDtypeCode<double> = DFE_NUMPY_DTYPE_CODE(f8);
+template<>
+constexpr const char* kNumpyDtypeCode<bool> = DFE_NUMPY_DTYPE_CODE(b);
 // not needed after this point. undef to avoid cluttering the namespace
-#undef DFE_DTYPE_CODE
+#undef DFE_NUMPY_DTYPE_CODE
 
 template<typename... Types>
 inline std::array<const char*, sizeof...(Types)>
 dtypes_codes(const std::tuple<Types...>& t)
 {
-  return {TypeInfo<typename std::decay<Types>::type>::dtype_code()...};
+  return {kNumpyDtypeCode<typename std::decay<Types>::type>...};
 }
 
 template<typename T>
