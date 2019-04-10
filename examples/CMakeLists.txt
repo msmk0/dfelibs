@@ -6,3 +6,10 @@ endfunction()
 
 add_example(dispatcher)
 add_example(namedtuple)
+
+find_package(ROOT 6.10)
+if(ROOT_FOUND)
+  add_example(namedtuple_root)
+  target_compile_features(${PROJECT_NAME}_example_namedtuple_root PRIVATE cxx_std_17)
+  target_link_libraries(${PROJECT_NAME}_example_namedtuple_root PRIVATE ROOT::Tree)
+endif()

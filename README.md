@@ -81,6 +81,7 @@ Add some self-awareness to a POD type
 
 ```cpp
 #include "dfe_namedtuple.hpp"
+#include "dfe_namedtuple_root.hpp" // optional library for ROOT output
 
 struct Record {
   uint32_t x;
@@ -95,7 +96,8 @@ and write it to disk in multiple formats:
 ```cpp
 dfe::CsvNamedTupleWriter<Record> csv("records.csv"); // or
 dfe::TsvNamedTupleWriter<Record> tsv("records.tsv"); // or
-dfe::NpyNamedTupleWriter<Record> npy("records.npy");
+dfe::NpyNamedTupleWriter<Record> npy("records.npy"); // or
+dfe::RootNamedTupleWriter<Record> root("records.root", "treename");
 
 csv.append(Record{1, 1.4, -2}); // same call for other writers
 ```
@@ -106,14 +108,17 @@ The results are either comma-separated text values
     1,1.4,-2
     ...
 
-or tab-separated text values
+tab-separated text values
 
     x       b       z
     1       1.4     -2
     ...
 
-or binary [NPY][npy] data. Data stored in one of the text-based formats can
-also be read back in:
+binary [NPY][npy] data or a [ROOT][root] `TTree`. The last option requires the
+[ROOT][root] library as an additional external dependency and is therefore
+separated from the rest.
+
+Data stored in one of the text-based formats can also be read back in:
 
 ```cpp
 dfe::TsvNamedTupleReader<Record> tsv("records.tsv");
@@ -151,3 +156,4 @@ float y = dfe::polynomial_val(0.5f, {0.25f, 1.0f, 0.75f});
 [cmake]: https://www.cmake.org
 [mit_license]: https://opensource.org/licenses/MIT
 [npy]: https://docs.scipy.org/doc/numpy/neps/npy-format.html
+[root]: https://root.cern.ch
