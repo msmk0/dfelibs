@@ -45,20 +45,26 @@ into the correct types
 dispatch.call_parsed("a_function", {"12", "0.23", "a message"});
 ```
 
-FlatSet
--------
+Flat containers
+---------------
 
-Store elements in a set-like object where the data is internally stored in
-a sorted flat container (as opposed to a tree-like structed as in `std::set`).
+Set-like and map-like containers that store the data internally as sorted,
+flat arrays continuous in memory (as opposed to a tree-like structed as e.g.
+in `std::set`). This simplifies allocation and should yield better performance
+when only a few elements are stored.
 
 ```cpp
 #include "dfe_flat.hpp"
 
-dfe::FlatSet<int> x;
+// set-like
+dfe::FlatSet<int> set;
+set.insert_or_assign(23);
+set.contains(23); // returns true
 
-x.insert_or_assign(-1);
-x.insert_or_assign(23);
-x.contains(23); // returns true
+// map-like
+dfe::FlatMap<std::string, std::string> map;
+map.emplace("xyz", "something"); // constructs element in-place
+map.contains("abc"); // returns false
 ```
 
 Histogram
