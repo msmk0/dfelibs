@@ -69,9 +69,9 @@ private:
   template<std::size_t... I>
   void setup_branches(std::index_sequence<I...>);
 
-  typename NamedTuple::Tuple m_data;
   TFile* m_file;
   TTree* m_tree;
+  typename NamedTuple::Tuple m_data;
 };
 
 // implementation
