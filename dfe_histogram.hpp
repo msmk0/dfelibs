@@ -72,8 +72,8 @@ private:
   constexpr std::size_t linear(Index idx) const;
   constexpr bool within_bounds(Index idx) const;
 
-  std::vector<T> m_data;
   Index m_size;
+  std::vector<T> m_data;
 };
 
 } // namespace
@@ -88,12 +88,12 @@ public:
   /// \param lower Lower inclusive boundary
   /// \param upper Upper exclusive boundary
   /// \param nbins Number of data bins within those boundaries
-  UniformAxis(Value lower, Value upper, std::size_t nbins);
+  UniformAxis(T lower, T upper, std::size_t nbins);
 
   /// Total number of bins along this axis including under/overflow bins.
   constexpr std::size_t nbins() const { return m_nbins; }
   /// Compute bin number for a test value.
-  std::size_t index(Value value) const;
+  std::size_t index(T value) const;
 
 private:
   std::size_t m_nbins;
@@ -112,12 +112,12 @@ public:
   /// \param lower Lower inclusive boundary
   /// \param upper Upper exclusive boundary
   /// \param nbins Number of data bins within those boundaries
-  OverflowAxis(Value lower, Value upper, std::size_t nbins);
+  OverflowAxis(T lower, T upper, std::size_t nbins);
 
   /// Total number of bins along this axis including under/overflow bins.
   constexpr std::size_t nbins() const { return 2 + m_ndatabins; }
   /// Compute bin number for a test value.
-  constexpr std::size_t index(Value value) const;
+  constexpr std::size_t index(T value) const;
 
 private:
   std::size_t m_ndatabins;
@@ -132,14 +132,14 @@ public:
   using Value = T;
 
   /// \param edges Bin edges, lower ones inclusive, upper ones exclusive.
-  explicit VariableAxis(std::vector<Value>&& edges);
+  explicit VariableAxis(std::vector<T>&& edges);
   /// \param edges Bin edges, lower ones inclusive, upper ones exclusive.
-  VariableAxis(std::initializer_list<Value> edges);
+  VariableAxis(std::initializer_list<T> edges);
 
   /// Total number of bins along this axis including under/overflow bins.
   constexpr std::size_t nbins() const { return m_edges.size() - 1; }
   /// Compute bin number for a test value.
-  std::size_t index(Value value) const;
+  std::size_t index(T value) const;
 
 private:
   std::vector<T> m_edges;
@@ -148,7 +148,7 @@ private:
 /// A generic histogram with configurable axes.
 ///
 /// \tparam T    The type of the data stored per bin
-/// \tparam Axes Each axis must provide `.nbins()` and `.index(...)` methods
+/// \tparam Axes Types must provide `::Value`, `.nbins()` and `.index(...)`
 template<typename T, typename... Axes>
 class Histogram {
 public:
@@ -194,12 +194,12 @@ using Histogram2 =
 template<typename T, std::size_t NDimensions>
 inline histogram_impl::NArray<T, NDimensions>::NArray(
   Index size, const T& value)
-  : m_data(
+  : m_size(size)
+  , m_data(
       std::accumulate(
         size.begin(), size.end(), static_cast<std::size_t>(1),
         std::multiplies<std::size_t>()),
       value)
-  , m_size(size)
 {
 }
 
@@ -231,8 +231,9 @@ template<typename T, std::size_t NDimensions>
 inline const T&
 histogram_impl::NArray<T, NDimensions>::at(Index idx) const
 {
-  if (!within_bounds(idx))
+  if (!within_bounds(idx)) {
     throw std::out_of_range("NArray index is out of valid range");
+  }
   return m_data[linear(idx)];
 }
 
@@ -240,15 +241,16 @@ template<typename T, std::size_t NDimensions>
 inline T&
 histogram_impl::NArray<T, NDimensions>::at(Index idx)
 {
-  if (!within_bounds(idx))
+  if (!within_bounds(idx)) {
     throw std::out_of_range("NArray index is out of valid range");
+  }
   return m_data[linear(idx)];
 }
 
 // implementation UniformAxis
 
 template<typename T>
-inline UniformAxis<T>::UniformAxis(Value lower, Value upper, std::size_t nbins)
+inline UniformAxis<T>::UniformAxis(T lower, T upper, std::size_t nbins)
   : m_nbins(nbins)
   , m_lower(lower)
   , m_upper(upper)
@@ -257,12 +259,14 @@ inline UniformAxis<T>::UniformAxis(Value lower, Value upper, std::size_t nbins)
 
 template<typename T>
 inline std::size_t
-UniformAxis<T>::index(UniformAxis::Value value) const
+UniformAxis<T>::index(T value) const
 {
-  if (value < this->m_lower)
+  if (value < this->m_lower) {
     throw std::out_of_range("Value is smaller than lower axis limit");
-  if (m_upper <= value)
+  }
+  if (m_upper <= value) {
     throw std::out_of_range("Value is equal or larger than upper axis limit");
+  }
   // cast truncates to integer part; should work since index is always > 0.
   return static_cast<std::size_t>(
     m_nbins * (value - m_lower) / (m_upper - m_lower));
@@ -281,10 +285,10 @@ inline OverflowAxis<T>::OverflowAxis(
 
 template<typename T>
 constexpr std::size_t
-OverflowAxis<T>::index(OverflowAxis::Value value) const
+OverflowAxis<T>::index(T value) const
 {
-  if (value < m_lower) return 0;
-  if (m_upper <= value) return m_ndatabins + 1;
+  if (value < m_lower) { return 0; }
+  if (m_upper <= value) { return m_ndatabins + 1; }
   // cast truncates to integer part; should work since index is always > 0.
   return 1 + static_cast<std::size_t>(
                m_ndatabins * (value - m_lower) / (m_upper - m_lower));
@@ -296,11 +300,14 @@ template<typename T>
 inline VariableAxis<T>::VariableAxis(std::vector<Value>&& edges)
   : m_edges(std::move(edges))
 {
-  if (m_edges.size() < 2)
+  if (m_edges.size() < 2) {
     throw std::invalid_argument("Less than two bin edges");
+  }
   // edges must be sorted and unique
-  if (!std::is_sorted(m_edges.begin(), m_edges.end(), std::less_equal<Value>()))
+  if (!std::is_sorted(
+        m_edges.begin(), m_edges.end(), std::less_equal<Value>())) {
     throw std::invalid_argument("Bin edges are not sorted or have duplicates");
+  }
 }
 
 template<typename T>
@@ -311,14 +318,16 @@ inline VariableAxis<T>::VariableAxis(std::initializer_list<Value> edges)
 
 template<typename T>
 inline std::size_t
-VariableAxis<T>::index(Value value) const
+VariableAxis<T>::index(T value) const
 {
   // find upper edge of the corresponding bin
   auto it = std::upper_bound(m_edges.begin(), m_edges.end(), value);
-  if (it == m_edges.begin())
+  if (it == m_edges.begin()) {
     throw std::out_of_range("Value is smaller than lower axis limit");
-  if (it == m_edges.end())
+  }
+  if (it == m_edges.end()) {
     throw std::out_of_range("Value is equal or larger than upper axis limit");
+  }
   return std::distance(m_edges.begin(), it) - 1;
 }
 
