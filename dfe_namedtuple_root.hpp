@@ -59,7 +59,7 @@ public:
   /// When the writer is created with an existing ROOT directory, the user
   /// is responsible for ensuring the underlying file is closed.
   RootNamedTupleWriter(TDirectory* dir, const std::string& tree_name);
-  /// Write the tree and close an owned file.
+  /// Write the tree and close the owned file.
   ~RootNamedTupleWriter();
 
   /// Append a record to the file.
@@ -77,7 +77,7 @@ private:
 // implementation
 
 template<typename NamedTuple>
-RootNamedTupleWriter<NamedTuple>::RootNamedTupleWriter(
+inline RootNamedTupleWriter<NamedTuple>::RootNamedTupleWriter(
   const std::string& path, const std::string& tree_name)
   : m_file(new TFile(path.c_str(), "RECREATE"))
   , m_tree(new TTree(tree_name.c_str(), "", 99, m_file))
@@ -89,7 +89,7 @@ RootNamedTupleWriter<NamedTuple>::RootNamedTupleWriter(
 }
 
 template<typename NamedTuple>
-RootNamedTupleWriter<NamedTuple>::RootNamedTupleWriter(
+inline RootNamedTupleWriter<NamedTuple>::RootNamedTupleWriter(
   TDirectory* dir, const std::string& tree_name)
   : m_file(nullptr) // no file since it is not owned by the writer
   , m_tree(new TTree(tree_name.c_str(), "", 99, dir))
@@ -99,8 +99,64 @@ RootNamedTupleWriter<NamedTuple>::RootNamedTupleWriter(
   setup_branches(std::make_index_sequence<NamedTuple::N>());
 }
 
+namespace namedtuple_root_impl {
+namespace {
+template<typename T>
+constexpr std::enable_if_t<false, T> kRootTypeCode;
+template<>
+constexpr char kRootTypeCode<bool> = 'O';
+template<>
+constexpr char kRootTypeCode<uint8_t> = 'b';
+template<>
+constexpr char kRootTypeCode<uint16_t> = 's';
+template<>
+constexpr char kRootTypeCode<uint32_t> = 'i';
+template<>
+constexpr char kRootTypeCode<uint64_t> = 'l';
+template<>
+constexpr char kRootTypeCode<ULong64_t> = 'l';
+template<>
+constexpr char kRootTypeCode<char> = 'B';
+template<>
+constexpr char kRootTypeCode<int8_t> = 'B';
+template<>
+constexpr char kRootTypeCode<int16_t> = 'S';
+template<>
+constexpr char kRootTypeCode<int32_t> = 'I';
+template<>
+constexpr char kRootTypeCode<int64_t> = 'L';
+template<>
+constexpr char kRootTypeCode<Long64_t> = 'L';
+template<>
+constexpr char kRootTypeCode<float> = 'F';
+template<>
+constexpr char kRootTypeCode<double> = 'D';
+} // namespace
+} // namespace namedtuple_root_impl
+
 template<typename NamedTuple>
-RootNamedTupleWriter<NamedTuple>::~RootNamedTupleWriter()
+template<std::size_t... I>
+inline void
+RootNamedTupleWriter<NamedTuple>::setup_branches(std::index_sequence<I...>)
+{
+  static_assert(sizeof...(I) == NamedTuple::N, "Something is very wrong");
+
+  // construct leaf names w/ type info
+  std::array<std::string, sizeof...(I)> names = NamedTuple::names();
+  std::array<std::string, sizeof...(I)> leafs = {
+    (names[I] + '/' +
+     namedtuple_root_impl::kRootTypeCode<
+       std::tuple_element_t<I, typename NamedTuple::Tuple>>)...};
+  // construct branches
+  // NOTE 2019-05-13 msmk:
+  // the documentation suggests that ROOT can figure out the branch types on
+  // its own, but doing seems to break for {u}int64_t. do it manually for now.
+  (void)std::array<TBranch*, sizeof...(I)>{m_tree->Branch(
+    names[I].c_str(), &std::get<I>(m_data), leafs[I].c_str())...};
+}
+
+template<typename NamedTuple>
+inline RootNamedTupleWriter<NamedTuple>::~RootNamedTupleWriter()
 {
   // alway overwrite old data
   if (m_tree) { m_tree->Write(nullptr, TObject::kOverwrite); }
@@ -119,52 +175,6 @@ RootNamedTupleWriter<NamedTuple>::append(const NamedTuple& record)
   if (m_tree->Fill() == -1) {
     throw std::runtime_error("Could not fill an entry");
   }
-}
-
-namespace namedtuple_root_impl {
-namespace {
-template<typename T>
-constexpr std::enable_if_t<false, T> kRootTypeCode;
-template<>
-constexpr const char* kRootTypeCode<uint8_t> = "/b";
-template<>
-constexpr const char* kRootTypeCode<uint16_t> = "/s";
-template<>
-constexpr const char* kRootTypeCode<uint32_t> = "/i";
-template<>
-constexpr const char* kRootTypeCode<uint64_t> = "/l";
-template<>
-constexpr const char* kRootTypeCode<int8_t> = "/B";
-template<>
-constexpr const char* kRootTypeCode<int16_t> = "/S";
-template<>
-constexpr const char* kRootTypeCode<int32_t> = "/I";
-template<>
-constexpr const char* kRootTypeCode<int64_t> = "/L";
-template<>
-constexpr const char* kRootTypeCode<float> = "/F";
-template<>
-constexpr const char* kRootTypeCode<double> = "/D";
-template<>
-constexpr const char* kRootTypeCode<bool> = "/O";
-} // namespace
-} // namespace namedtuple_root_impl
-
-template<typename NamedTuple>
-template<std::size_t... I>
-inline void
-RootNamedTupleWriter<NamedTuple>::setup_branches(std::index_sequence<I...>)
-{
-  static_assert(sizeof...(I) == NamedTuple::N, "Something is very wrong");
-
-  // construct leaf names w/ type info
-  std::array<std::string, sizeof...(I)> names = NamedTuple::names();
-  std::array<std::string, sizeof...(I)> leafs = {
-    (names[I] + namedtuple_root_impl::kRootTypeCode<
-                  std::tuple_element_t<I, typename NamedTuple::Tuple>>)...};
-  // construct branches based on the tuple data
-  (void)std::array<TBranch*, sizeof...(I)>{m_tree->Branch(
-    names[I].c_str(), &std::get<I>(m_data), leafs[I].c_str())...};
 }
 
 } // namespace dfe
