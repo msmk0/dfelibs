@@ -7,6 +7,9 @@
 #include <random>
 
 #include <dfe_namedtuple.hpp>
+#ifdef DFE_USE_NAMEDTUPLE_ROOT
+#include <dfe_namedtuple_root.hpp>
+#endif
 
 struct Data {
   uint32_t dac0;
@@ -26,6 +29,10 @@ main(int argc, char* argv[])
   dfe::TsvNamedTupleWriter<Data> tsv("test.tsv");
   // numpy writer
   dfe::NpyNamedTupleWriter<Data> npy("test.npy");
+#ifdef DFE_USE_NAMEDTUPLE_ROOT
+  // (optional) ROOT writer
+  dfe::RootNamedTupleWriter<Data> roo("test.root", "records");
+#endif
 
   // random data generators
   auto rng = std::ranlux48(12345);
@@ -45,6 +52,9 @@ main(int argc, char* argv[])
     csv.append(x);
     tsv.append(x);
     npy.append(x);
+#ifdef DFE_USE_NAMEDTUPLE_ROOT
+    roo.append(x);
+#endif
 
     std::cout << "entry " << i << ": " << x << std::endl;
   }
