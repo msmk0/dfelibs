@@ -74,7 +74,49 @@ private:
   typename NamedTuple::Tuple m_data;
 };
 
-// implementation
+/// Read records from a ROOT TTree.
+template<typename NamedTuple>
+class RootNamedTupleReader {
+public:
+  RootNamedTupleReader() = delete;
+  RootNamedTupleReader(const RootNamedTupleReader&) = delete;
+  RootNamedTupleReader(RootNamedTupleReader&&) = delete;
+  RootNamedTupleReader& operator=(const RootNamedTupleReader&) = delete;
+  RootNamedTupleReader& operator=(RootNamedTupleReader&&) = delete;
+
+  /// Open a file at the given path.
+  ///
+  /// \param path       Path to the input file
+  /// \param tree_name  Name of the input tree within the file
+  RootNamedTupleReader(const std::string& path, const std::string& tree_name);
+  /// Open a tree from a ROOT directory.
+  ///
+  /// \param dir        Input directory for the tree
+  /// \param tree_name  Name of the input tree relative to the directory
+  ///
+  /// When the reader is created with an existing ROOT directory, the user
+  /// is responsible for ensuring the underlying file is closed.
+  RootNamedTupleReader(TDirectory* dir, const std::string& tree_name);
+  /// Write the tree and close the owned file.
+  ~RootNamedTupleReader();
+
+  /// Read the next record from the file.
+  ///
+  /// \returns true   if a record was successfully read
+  /// \returns false  if no more records are available
+  bool read(NamedTuple& record);
+
+private:
+  template<std::size_t... I>
+  void setup_branches(std::index_sequence<I...>);
+
+  TFile* m_file;
+  TTree* m_tree;
+  int64_t m_next;
+  typename NamedTuple::Tuple m_data;
+};
+
+// implementation writer
 
 template<typename NamedTuple>
 inline RootNamedTupleWriter<NamedTuple>::RootNamedTupleWriter(
@@ -175,6 +217,107 @@ RootNamedTupleWriter<NamedTuple>::append(const NamedTuple& record)
   if (m_tree->Fill() == -1) {
     throw std::runtime_error("Could not fill an entry");
   }
+}
+
+// implementation reader
+
+template<typename NamedTuple>
+inline RootNamedTupleReader<NamedTuple>::RootNamedTupleReader(
+  const std::string& path, const std::string& tree_name)
+  : m_file(new TFile(path.c_str(), "READ"))
+  , m_tree(nullptr)
+  , m_next(0)
+{
+  if (not m_file) { throw std::runtime_error("Could not open file"); }
+  if (not m_file->IsOpen()) { throw std::runtime_error("Could not open file"); }
+  m_tree = static_cast<TTree*>(m_file->Get(tree_name.c_str()));
+  if (not m_tree) { throw std::runtime_error("Could not read tree"); }
+  setup_branches(std::make_index_sequence<NamedTuple::N>());
+}
+
+template<typename NamedTuple>
+inline RootNamedTupleReader<NamedTuple>::RootNamedTupleReader(
+  TDirectory* dir, const std::string& tree_name)
+  : m_file(nullptr) // no file since it is not owned by the writer
+  , m_tree(nullptr)
+  , m_next(0)
+{
+  if (not dir) { throw std::runtime_error("Invalid input directory given"); }
+  m_tree = static_cast<TTree*>(dir->Get(tree_name.c_str()));
+  if (not m_tree) { throw std::runtime_error("Could not read tree"); }
+  setup_branches(std::make_index_sequence<NamedTuple::N>());
+}
+
+namespace namedtuple_root_impl {
+namespace {
+// WARNING this is a hack to get around inconsistent ROOT types for 8bit chars
+// and 64bit intengers compared to the stdint types.
+__attribute__((unused)) constexpr ULong64_t*
+get_address(uint64_t& x)
+{
+  static_assert(
+    sizeof(ULong64_t) == sizeof(uint64_t), "Inconsistent type sizes");
+  return reinterpret_cast<ULong64_t*>(&x);
+}
+__attribute__((unused)) constexpr char*
+get_address(int8_t& x)
+{
+  static_assert(sizeof(char) == sizeof(int8_t), "Inconsistent type sizes");
+  return reinterpret_cast<char*>(&x);
+}
+__attribute__((unused)) constexpr Long64_t*
+get_address(int64_t& x)
+{
+  static_assert(sizeof(Long64_t) == sizeof(int64_t), "Inconsistent type sizes");
+  return reinterpret_cast<Long64_t*>(&x);
+}
+template<typename T>
+constexpr T*
+get_address(T& x)
+{
+  return &x;
+}
+} // namespace
+} // namespace namedtuple_root_impl
+
+template<typename NamedTuple>
+template<std::size_t... I>
+inline void
+RootNamedTupleReader<NamedTuple>::setup_branches(std::index_sequence<I...>)
+{
+  static_assert(sizeof...(I) == NamedTuple::N, "Something is very wrong");
+
+  // construct leaf names w/ type info
+  std::array<std::string, sizeof...(I)> names = NamedTuple::names();
+  // construct branches
+  (void)std::array<Int_t, sizeof...(I)>{m_tree->SetBranchAddress(
+    names[I].c_str(),
+    namedtuple_root_impl::get_address(std::get<I>(m_data)))...};
+}
+
+template<typename NamedTuple>
+inline RootNamedTupleReader<NamedTuple>::~RootNamedTupleReader()
+{
+  // reader owns the file
+  if (m_file) {
+    m_file->Close();
+    delete m_file;
+  }
+}
+
+template<typename NamedTuple>
+inline bool
+RootNamedTupleReader<NamedTuple>::read(NamedTuple& record)
+{
+  auto ret = m_tree->GetEntry(m_next);
+  // i/o error occured
+  if (ret < 0) { throw std::runtime_error("Could not read entry"); }
+  // the entry does not exist, probably end-of-file reached
+  if (ret == 0) { return false; }
+  // GetEntry(...) has already filled the local buffer
+  record = m_data;
+  m_next += 1;
+  return true;
 }
 
 } // namespace dfe
