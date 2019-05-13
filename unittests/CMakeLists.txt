@@ -1,5 +1,7 @@
 # minimal version that provides test v3
 find_package(Boost 1.59 REQUIRED COMPONENTS unit_test_framework)
+# optional, for namedtuple_root test
+find_package(ROOT 6.10)
 
 function(add_unittest _name)
   set(_target "${PROJECT_NAME}_unittest_${_name}")
@@ -18,4 +20,11 @@ add_unittest(flatmap)
 add_unittest(flatset)
 add_unittest(histogram)
 add_unittest(namedtuple)
+if(ROOT_FOUND)
+  add_unittest(namedtuple_root)
+  # ROOT might require C++17 but does not advertise it
+  set(_target "${PROJECT_NAME}_unittest_namedtuple_root")
+  target_compile_features(${_target} PRIVATE cxx_std_17)
+  target_link_libraries(${_target} PRIVATE ROOT::Tree)
+endif()
 add_unittest(poly)

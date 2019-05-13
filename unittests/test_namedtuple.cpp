@@ -1,5 +1,5 @@
 /// \file
-/// \brief Unit tests for named tuple writers
+/// \brief Unit tests for named tuple readers and writers
 
 #include <boost/test/unit_test.hpp>
 #include <iostream>
