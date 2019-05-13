@@ -140,13 +140,15 @@ binary [NPY][npy] data or a [ROOT][root] `TTree`. The last option requires the
 [ROOT][root] library as an additional external dependency and is therefore
 separated from the rest.
 
-Data stored in one of the text-based formats can also be read back in:
+Data stored in one of the text-based formats or as a ROOT tree can also be read
+back in:
 
 ```cpp
 dfe::TsvNamedTupleReader<Record> tsv("records.tsv");
+dfe::RootNamedTupleReader<Record> root("records.root", "treename");
 
 Record data;
-tsv.read(data);
+tsv.read(data); // same call for other readers
 ```
 
 Poly
