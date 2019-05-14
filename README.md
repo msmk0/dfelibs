@@ -49,8 +49,8 @@ Flat containers
 ---------------
 
 Set-like and map-like containers that store the data internally as sorted,
-flat arrays continuous in memory (as opposed to a tree-like structed as e.g.
-in `std::set`). This simplifies allocation and should yield better performance
+flat arrays continuous in memory (as opposed to a tree-like structure as e.g.
+in `std::set`). This simplifies allocations and should yield better performance
 when only a few elements are stored.
 
 ```cpp
