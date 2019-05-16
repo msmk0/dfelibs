@@ -11,6 +11,7 @@ project(dfelibs LANGUAGES CXX)
 
 option(dfelibs_BUILD_EXAMPLES "Build examples" ${dfelibs_MASTER_PROJECT})
 option(dfelibs_BUILD_UNITTESTS "Build unit tests" ${dfelibs_MASTER_PROJECT})
+option(dfelibs_ENABLE_INSTALL "Enable library installation" ${dfelibs_MASTER_PROJECT})
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
@@ -21,6 +22,10 @@ add_library(dfelibs INTERFACE)
 target_include_directories(dfelibs INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_features(dfelibs INTERFACE cxx_std_14)
 
+if(dfelibs_ENABLE_INSTALL)
+  include(GNUInstallDirs)
+  install(DIRECTORY dfe DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+endif()
 if(dfelibs_BUILD_EXAMPLES)
   add_subdirectory(examples)
 endif()
