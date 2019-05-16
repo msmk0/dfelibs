@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <iostream>
 
-#include <dfe_dispatcher.hpp>
+#include <dfe/dfe_dispatcher.hpp>
 
 // example functions
 

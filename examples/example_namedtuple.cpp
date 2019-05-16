@@ -6,9 +6,9 @@
 #include <iostream>
 #include <random>
 
-#include <dfe_namedtuple.hpp>
+#include <dfe/dfe_namedtuple.hpp>
 #ifdef DFE_USE_NAMEDTUPLE_ROOT
-#include <dfe_namedtuple_root.hpp>
+#include <dfe/dfe_namedtuple_root.hpp>
 #endif
 
 struct Data {

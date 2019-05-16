@@ -4,7 +4,7 @@
 #include <boost/test/unit_test.hpp>
 #include <iostream>
 
-#include <dfe_dispatcher.hpp>
+#include <dfe/dfe_dispatcher.hpp>
 
 using dfe::Dispatcher;
 using dfe::Variable;

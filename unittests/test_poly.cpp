@@ -7,7 +7,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <dfe_poly.hpp>
+#include <dfe/dfe_poly.hpp>
 
 // make std::pair printable to allow direct comparision w/ boost::test
 

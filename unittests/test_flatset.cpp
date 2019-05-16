@@ -3,7 +3,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <dfe_flat.hpp>
+#include <dfe/dfe_flat.hpp>
 
 using dfe::FlatSet;
 

@@ -21,7 +21,7 @@ Dispatcher
 Register arbitrary functions with the dispatcher
 
 ```cpp
-#include "dfe_dispatcher.hpp"
+#include "dfe/dfe_dispatcher.hpp"
 
 void func1(int x, double y, std::string z) { ... }
 int func2(float a, unsigned int b) { ... }
@@ -54,7 +54,7 @@ in `std::set`). This simplifies allocations and should yield better performance
 when only a few elements are stored.
 
 ```cpp
-#include "dfe_flat.hpp"
+#include "dfe/dfe_flat.hpp"
 
 // set-like
 dfe::FlatSet<int> set;
@@ -73,7 +73,7 @@ Histogram
 Compose a multi-dimensional histogram with configurable axis types
 
 ```cpp
-#include "dfe_histogram.hpp"
+#include "dfe/dfe_histogram.hpp"
 
 using H3 =
   dfe::Histogram<float,
@@ -102,8 +102,8 @@ Named tuple
 Add some self-awareness to a POD type
 
 ```cpp
-#include "dfe_namedtuple.hpp"
-#include "dfe_namedtuple_root.hpp" // optional library for ROOT output
+#include "dfe/dfe_namedtuple.hpp"
+#include "dfe/dfe_namedtuple_root.hpp" // optional library for ROOT output
 
 struct Record {
   uint32_t x;
@@ -158,7 +158,7 @@ Evaluate polynomial functions and their derivatives using either a
 (variable-sized) container of coefficients
 
 ```cpp
-#include "dfe_poly.h"
+#include "dfe/dfe_poly.h"
 
 std:vector<double> coeffs = {0.0, 2.0, 3.0, 4.0};
 // evaluate f(x) = 2*x + 3*x^2 + 4*x^3 at x=-1.0
