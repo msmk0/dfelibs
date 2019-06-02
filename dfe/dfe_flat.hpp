@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 /// \file
-/// \brief   Minimal containers based on flat storage
+/// \brief   Minimal associative containers based on continous storage
 /// \author  Moritz Kiehn <msmk@cern.ch>
 /// \date    2019-02-27, Initial version
 
@@ -32,10 +32,13 @@
 
 namespace dfe {
 
-/// An ordered collection of elements stored in a flat vector.
+/// An set of unique elements stored in a continous container.
 ///
-/// Allows membership check, ensures uniqueness of elements, and allows
-/// iteration over elements.
+/// Supports membership check, ensures uniqueness of elements, and allows
+/// iteration over elements. By using a continous container, memory allocation
+/// is greatly simplified and lookups benefit from higher memory locality
+/// at the expense of slower insertion of elements. Should work best for
+/// smaller sets with frequent lookups.
 ///
 /// The set elements can not be modified on purpose. With a non-standard
 /// `Compare` function modifying a contained object might change its identity
@@ -74,6 +77,12 @@ private:
   std::vector<T> m_items;
 };
 
+/// A key-value map that stores keys and values in continous containers.
+///
+/// Supports membership check, access to values by key, addition and replacement
+/// of values for a given key. Keys and values are stored in separate
+/// continous containers to simplify allocation and benefit from greater
+/// memory locality.
 template<typename Key, typename T, typename Compare = std::less<Key>>
 class FlatMap {
 public:
