@@ -48,20 +48,17 @@ class FlatSet {
 public:
   using const_iterator = typename std::vector<T>::const_iterator;
 
-  const_iterator begin() const { return m_items.begin(); }
-  const_iterator end() const { return m_items.end(); }
-
-  /// Return the number of elements in the set.
-  size_t size() const { return m_items.size(); }
-  /// Return true if the equivalent element is in the set.
-  template<typename U>
-  bool contains(U&& u) const;
-  /// Return an interator to the equivalent element or `.end()` if not found.
-  template<typename U>
-  const_iterator find(U&& u) const;
   /// Access the equivalent element or throw if it does not exists.
   template<typename U>
   const T& at(U&& u) const;
+
+  const_iterator begin() const { return m_items.begin(); }
+  const_iterator end() const { return m_items.end(); }
+
+  /// Return true if there are no elements in the set.
+  bool empty() const { return m_items.empty(); }
+  /// Return the number of elements in the set.
+  std::size_t size() const { return m_items.size(); }
 
   /// Remove all elements from the container.
   void clear() { m_items.clear(); }
@@ -72,6 +69,13 @@ public:
   /// function. Only one can be kept and this function replaces the existing
   /// element with the new one in such a case.
   void insert_or_assign(const T& t);
+
+  /// Return an interator to the equivalent element or `.end()` if not found.
+  template<typename U>
+  const_iterator find(U&& u) const;
+  /// Return true if the equivalent element is in the set.
+  template<typename U>
+  bool contains(U&& u) const;
 
 private:
   std::vector<T> m_items;
@@ -86,14 +90,15 @@ private:
 template<typename Key, typename T, typename Compare = std::less<Key>>
 class FlatMap {
 public:
-  /// Return the number of elements in the container.
-  size_t size() const { return m_keys.size(); }
-  /// Return true if an element exists for the given key
-  bool contains(const Key& key) const { return m_keys.contains(key); }
-  /// Read-only access to an element or throw if it does not exists.
-  const T& at(const Key& key) const { return m_items[m_keys.at(key).index]; }
   /// Writable access to an element or throw if it does not exists.
   T& at(const Key& key) { return m_items[m_keys.at(key).index]; }
+  /// Read-only access to an element or throw if it does not exists.
+  const T& at(const Key& key) const { return m_items[m_keys.at(key).index]; }
+
+  /// Return true if there are no elements in the map.
+  bool empty() const { return m_keys.empty(); }
+  /// Return the number of elements in the container.
+  std::size_t size() const { return m_keys.size(); }
 
   /// Remove all elements from the container.
   void clear() { m_keys.clear(), m_items.clear(); }
@@ -104,10 +109,13 @@ public:
   template<typename... Params>
   void emplace(const Key& key, Params&&... params);
 
+  /// Return true if an element exists for the given key
+  bool contains(const Key& key) const { return m_keys.contains(key); }
+
 private:
   struct KeyIndex {
     Key key;
-    size_t index;
+    std::size_t index;
   };
   struct KeyCompare {
     constexpr bool operator()(const KeyIndex& lhs, const KeyIndex& rhs) const
@@ -132,26 +140,6 @@ private:
 
 template<typename T, typename Compare>
 template<typename U>
-inline typename FlatSet<T, Compare>::const_iterator
-FlatSet<T, Compare>::find(U&& u) const
-{
-  auto end = m_items.end();
-  auto pos =
-    std::lower_bound(m_items.begin(), end, std::forward<U>(u), Compare());
-  return ((pos != end) and !Compare()(std::forward<U>(u), *pos)) ? pos : end;
-}
-
-template<typename T, typename Compare>
-template<typename U>
-inline bool
-FlatSet<T, Compare>::contains(U&& u) const
-{
-  return std::binary_search(
-    m_items.begin(), m_items.end(), std::forward<U>(u), Compare());
-}
-
-template<typename T, typename Compare>
-template<typename U>
 inline const T&
 FlatSet<T, Compare>::at(U&& u) const
 {
@@ -172,6 +160,26 @@ FlatSet<T, Compare>::insert_or_assign(const T& t)
   } else {
     m_items.insert(pos, t);
   }
+}
+
+template<typename T, typename Compare>
+template<typename U>
+inline typename FlatSet<T, Compare>::const_iterator
+FlatSet<T, Compare>::find(U&& u) const
+{
+  auto end = m_items.end();
+  auto pos =
+    std::lower_bound(m_items.begin(), end, std::forward<U>(u), Compare());
+  return ((pos != end) and !Compare()(std::forward<U>(u), *pos)) ? pos : end;
+}
+
+template<typename T, typename Compare>
+template<typename U>
+inline bool
+FlatSet<T, Compare>::contains(U&& u) const
+{
+  return std::binary_search(
+    m_items.begin(), m_items.end(), std::forward<U>(u), Compare());
 }
 
 // implementation FlatMap
