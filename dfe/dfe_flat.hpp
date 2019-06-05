@@ -35,7 +35,7 @@ namespace dfe {
 /// An container adaptor to store a set of elements in a sequential container.
 ///
 /// \tparam T         Stored element type
-/// \tparam Compare   Function satisfying the `Compare` c++ named requirement
+/// \tparam Compare   Function satisfying the `Compare` named requirement
 /// \tparam Container Sequential container
 ///
 /// Supports access by equivalence, iteration over all elements, removing all
@@ -90,24 +90,32 @@ private:
   Container m_items;
 };
 
-/// A key-value map that stores keys and values in continous containers.
+/// A key-value map that stores keys and values in sequential containers.
 ///
-/// Supports membership check, access to values by key, addition and replacement
-/// of values for a given key. Keys and values are stored in separate
-/// continous containers to simplify allocation and benefit from greater
-/// memory locality.
+/// \tparam Key     Stored element key type
+/// \tparam T       Stored element value type
+/// \tparam Compare Function satisfying the `Compare` name requirements for keys
+///
+/// Supports access by key, clearing all elements, adding or replacing the
+/// stored value for a given key, and membership checks. Keys and values are
+/// stored in separate sequential containers to simplify allocation and benefit
+/// from greater memory locality.
 template<typename Key, typename T, typename Compare = std::less<Key>>
 class FlatMap {
 public:
+  using key_type = Key;
+  using value_type = T;
+  using size_type = std::size_t;
+
   /// Writable access to an element or throw if it does not exists.
-  T& at(const Key& key) { return m_items[m_keys.at(key).index]; }
+  value_type& at(const Key& key) { return m_items[m_keys.at(key).index]; }
   /// Read-only access to an element or throw if it does not exists.
-  const T& at(const Key& key) const { return m_items[m_keys.at(key).index]; }
+  const value_type& at(const Key& key) const { return m_items[m_keys.at(key).index]; }
 
   /// Return true if there are no elements in the map.
   bool empty() const { return m_keys.empty(); }
   /// Return the number of elements in the container.
-  std::size_t size() const { return m_keys.size(); }
+  size_type size() const { return m_keys.size(); }
 
   /// Remove all elements from the container.
   void clear() { m_keys.clear(), m_items.clear(); }
@@ -124,7 +132,7 @@ public:
 private:
   struct KeyIndex {
     Key key;
-    std::size_t index;
+    size_type index;
   };
   struct KeyCompare {
     constexpr bool operator()(const KeyIndex& lhs, const KeyIndex& rhs) const
