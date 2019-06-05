@@ -32,25 +32,34 @@
 
 namespace dfe {
 
-/// An set of unique elements stored in a continous container.
+/// An container adaptor to store a set of elements in a sequential container.
 ///
-/// Supports membership check, ensures uniqueness of elements, and allows
-/// iteration over elements. By using a continous container, memory allocation
-/// is greatly simplified and lookups benefit from higher memory locality
-/// at the expense of slower insertion of elements. Should work best for
-/// smaller sets with frequent lookups.
+/// \tparam T         Stored element type
+/// \tparam Compare   Function satisfying the `Compare` c++ named requirement
+/// \tparam Container Sequential container
+///
+/// Supports access by equivalence, iteration over all elements, removing all
+/// elements, adding elements while maintaining uniqueness, and membership
+/// checks. By using a sequential container, memory allocation is greatly
+/// simplified and lookups benefit from higher memory locality at the expense of
+/// slower insertion of elements. Should work best for smaller sets with
+/// frequent lookups.
 ///
 /// The set elements can not be modified on purpose. With a non-standard
 /// `Compare` function modifying a contained object might change its identity
 /// and thus its position in the set. This would break the internal sorting.
-template<typename T, typename Compare = std::less<T>>
+template<
+  typename T, typename Compare = std::less<T>,
+  typename Container = std::vector<T>>
 class FlatSet {
 public:
-  using const_iterator = typename std::vector<T>::const_iterator;
+  using value_type = T;
+  using size_type = typename Container::size_type;
+  using const_iterator = typename Container::const_iterator;
 
   /// Access the equivalent element or throw if it does not exists.
   template<typename U>
-  const T& at(U&& u) const;
+  const value_type& at(U&& u) const;
 
   const_iterator begin() const { return m_items.begin(); }
   const_iterator end() const { return m_items.end(); }
@@ -58,7 +67,7 @@ public:
   /// Return true if there are no elements in the set.
   bool empty() const { return m_items.empty(); }
   /// Return the number of elements in the set.
-  std::size_t size() const { return m_items.size(); }
+  size_type size() const { return m_items.size(); }
 
   /// Remove all elements from the container.
   void clear() { m_items.clear(); }
@@ -78,7 +87,7 @@ public:
   bool contains(U&& u) const;
 
 private:
-  std::vector<T> m_items;
+  Container m_items;
 };
 
 /// A key-value map that stores keys and values in continous containers.
@@ -138,10 +147,10 @@ private:
 
 // implementation FlatSet
 
-template<typename T, typename Compare>
+template<typename T, typename Compare, typename Container>
 template<typename U>
-inline const T&
-FlatSet<T, Compare>::at(U&& u) const
+inline const typename FlatSet<T, Compare, Container>::value_type&
+FlatSet<T, Compare, Container>::at(U&& u) const
 {
   auto pos = find(std::forward<U>(u));
   if (pos == end()) {
@@ -150,22 +159,22 @@ FlatSet<T, Compare>::at(U&& u) const
   return *pos;
 }
 
-template<typename T, typename Compare>
+template<typename T, typename Compare, typename Container>
 inline void
-FlatSet<T, Compare>::insert_or_assign(const T& t)
+FlatSet<T, Compare, Container>::insert_or_assign(const T& t)
 {
   auto pos = std::lower_bound(m_items.begin(), m_items.end(), t, Compare());
   if (((pos != m_items.end()) and !Compare()(t, *pos))) {
     *pos = t;
   } else {
-    m_items.insert(pos, t);
+    m_items.emplace(pos, t);
   }
 }
 
-template<typename T, typename Compare>
+template<typename T, typename Compare, typename Container>
 template<typename U>
-inline typename FlatSet<T, Compare>::const_iterator
-FlatSet<T, Compare>::find(U&& u) const
+inline typename FlatSet<T, Compare, Container>::const_iterator
+FlatSet<T, Compare, Container>::find(U&& u) const
 {
   auto end = m_items.end();
   auto pos =
@@ -173,10 +182,10 @@ FlatSet<T, Compare>::find(U&& u) const
   return ((pos != end) and !Compare()(std::forward<U>(u), *pos)) ? pos : end;
 }
 
-template<typename T, typename Compare>
+template<typename T, typename Compare, typename Container>
 template<typename U>
 inline bool
-FlatSet<T, Compare>::contains(U&& u) const
+FlatSet<T, Compare, Container>::contains(U&& u) const
 {
   return std::binary_search(
     m_items.begin(), m_items.end(), std::forward<U>(u), Compare());
