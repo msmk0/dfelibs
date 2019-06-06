@@ -176,6 +176,21 @@ or using the coefficients directly for fixed order polynomials:
 float y = dfe::polynomial_val(0.5f, {0.25f, 1.0f, 0.75f});
 ```
 
+Small vector
+------------
+
+A vector-like container of elements than can store a fixed number of
+elements directly in the container without allocating additional memory.
+
+```cpp
+#include <dfe/dfe_smallvector.hpp>
+
+dfe::SmallVector<float, 2> vec;
+vec.emplace_back(2.3); // stored directly in the container
+vec.emplace_back(4.2); // stored directly in the container
+vec.emplace_back(5.0); // memory is allocated and data moved
+```
+
 
 [cmake]: https://www.cmake.org
 [mit_license]: https://opensource.org/licenses/MIT
