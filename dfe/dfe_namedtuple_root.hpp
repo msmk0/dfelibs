@@ -192,7 +192,8 @@ RootNamedTupleWriter<NamedTuple>::setup_branches(std::index_sequence<I...>)
   // construct branches
   // NOTE 2019-05-13 msmk:
   // the documentation suggests that ROOT can figure out the branch types on
-  // its own, but doing seems to break for {u}int64_t. do it manually for now.
+  // its own, but doing so seems to break for {u}int64_t. do it manually for
+  // now.
   (void)std::array<TBranch*, sizeof...(I)>{m_tree->Branch(
     names[I].c_str(), &std::get<I>(m_data), leafs[I].c_str())...};
 }

@@ -47,7 +47,7 @@ struct Record {
   Long64_t ri64;
   Bool_t rb;
 
-  // order is intentionally in line with the definition order
+  // order is intentionally not the same as the definition order
   DFE_NAMEDTUPLE(
     Record, u64, u32, u16, u8, i64, i32, i16, i8, ull, ul, ui, us, f, d, ll, l,
     i, s, uc, sc, c, b, ru8, ru16, ru32, ru64, ri8, ri16, ri32, ri64, rb);
