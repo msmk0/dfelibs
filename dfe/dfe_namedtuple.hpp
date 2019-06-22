@@ -289,7 +289,7 @@ TextNamedTupleWriter<NamedTuple>::append(const NamedTuple& record)
 
 template<typename NamedTuple>
 template<typename TupleLike, std::size_t... I>
-void
+inline void
 TextNamedTupleWriter<NamedTuple>::write_line(
   const TupleLike& values, std::index_sequence<I...>)
 {
@@ -310,7 +310,7 @@ TextNamedTupleWriter<NamedTuple>::write_line(
 // implementation text reader
 
 template<typename NamedTuple>
-TextNamedTupleReader<NamedTuple>::TextNamedTupleReader(
+inline TextNamedTupleReader<NamedTuple>::TextNamedTupleReader(
   const std::string& path, char delimiter, bool verify_header)
   : m_delimiter(delimiter)
   , m_num_lines(0)
@@ -334,7 +334,7 @@ TextNamedTupleReader<NamedTuple>::TextNamedTupleReader(
 }
 
 template<typename NamedTuple>
-bool
+inline bool
 TextNamedTupleReader<NamedTuple>::read(NamedTuple& record)
 {
   if (!read_line()) { return false; }
@@ -344,7 +344,7 @@ TextNamedTupleReader<NamedTuple>::read(NamedTuple& record)
 }
 
 template<typename NamedTuple>
-bool
+inline bool
 TextNamedTupleReader<NamedTuple>::read_line()
 {
   // read a full line
@@ -385,7 +385,7 @@ TextNamedTupleReader<NamedTuple>::read_line()
 
 template<typename NamedTuple>
 template<typename TupleLike, std::size_t... I>
-TupleLike
+inline TupleLike
 TextNamedTupleReader<NamedTuple>::parse_line(std::index_sequence<I...>) const
 {
   // see write_line implementation in text writer for explanation
