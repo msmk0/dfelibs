@@ -424,7 +424,7 @@ constexpr const char* kNumpyDtypeCode<float> = "f4";
 template<>
 constexpr const char* kNumpyDtypeCode<double> = "f8";
 template<>
-constexpr const char* kNumpyDtypeCode<bool> = "b";
+constexpr const char* kNumpyDtypeCode<bool> = "?";
 
 template<typename... Types>
 constexpr std::array<const char*, sizeof...(Types)>
