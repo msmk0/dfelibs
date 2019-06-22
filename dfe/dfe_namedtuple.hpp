@@ -26,8 +26,6 @@
 
 #pragma once
 
-#include <endian.h>
-
 #include <array>
 #include <cstdint>
 #include <cstring>
@@ -403,46 +401,54 @@ TextNamedTupleReader<NamedTuple>::parse_line(std::index_sequence<I...>) const
 
 namespace namedtuple_impl {
 namespace {
-
-#if (__BYTE_ORDER == __LITTLE_ENDIAN) && (__FLOAT_WORD_ORDER == __BYTE_ORDER)
-#define DFE_NUMPY_DTYPE_CODE(c) "<" #c
-#elif (__BYTE_ORDER == __BIG_ENDIAN) && (__FLOAT_WORD_ORDER == __BYTE_ORDER)
-#define DFE_NUMPY_DTYPE_CODE(size) ">" #c
-#else
-#error Unsupported byte order
-#endif
 template<typename T>
 constexpr std::enable_if_t<false, T> kNumpyDtypeCode;
 template<>
-constexpr const char* kNumpyDtypeCode<uint8_t> = DFE_NUMPY_DTYPE_CODE(u1);
+constexpr const char* kNumpyDtypeCode<uint8_t> = "u1";
 template<>
-constexpr const char* kNumpyDtypeCode<uint16_t> = DFE_NUMPY_DTYPE_CODE(u2);
+constexpr const char* kNumpyDtypeCode<uint16_t> = "u2";
 template<>
-constexpr const char* kNumpyDtypeCode<uint32_t> = DFE_NUMPY_DTYPE_CODE(u4);
+constexpr const char* kNumpyDtypeCode<uint32_t> = "u4";
 template<>
-constexpr const char* kNumpyDtypeCode<uint64_t> = DFE_NUMPY_DTYPE_CODE(u8);
+constexpr const char* kNumpyDtypeCode<uint64_t> = "u8";
 template<>
-constexpr const char* kNumpyDtypeCode<int8_t> = DFE_NUMPY_DTYPE_CODE(i1);
+constexpr const char* kNumpyDtypeCode<int8_t> = "i1";
 template<>
-constexpr const char* kNumpyDtypeCode<int16_t> = DFE_NUMPY_DTYPE_CODE(i2);
+constexpr const char* kNumpyDtypeCode<int16_t> = "i2";
 template<>
-constexpr const char* kNumpyDtypeCode<int32_t> = DFE_NUMPY_DTYPE_CODE(i4);
+constexpr const char* kNumpyDtypeCode<int32_t> = "i4";
 template<>
-constexpr const char* kNumpyDtypeCode<int64_t> = DFE_NUMPY_DTYPE_CODE(i8);
+constexpr const char* kNumpyDtypeCode<int64_t> = "i8";
 template<>
-constexpr const char* kNumpyDtypeCode<float> = DFE_NUMPY_DTYPE_CODE(f4);
+constexpr const char* kNumpyDtypeCode<float> = "f4";
 template<>
-constexpr const char* kNumpyDtypeCode<double> = DFE_NUMPY_DTYPE_CODE(f8);
+constexpr const char* kNumpyDtypeCode<double> = "f8";
 template<>
-constexpr const char* kNumpyDtypeCode<bool> = DFE_NUMPY_DTYPE_CODE(b);
-// not needed after this point. undef to avoid cluttering the namespace
-#undef DFE_NUMPY_DTYPE_CODE
+constexpr const char* kNumpyDtypeCode<bool> = "b";
 
 template<typename... Types>
-inline std::array<const char*, sizeof...(Types)>
+constexpr std::array<const char*, sizeof...(Types)>
 dtypes_codes(const std::tuple<Types...>& t)
 {
   return {kNumpyDtypeCode<typename std::decay<Types>::type>...};
+}
+
+// Determines endianness and return the corresponding dtype code modifier.
+//
+// Derived from:
+// https://stackoverflow.com/questions/1001307/detecting-endianness-programmatically-in-a-c-program
+constexpr char
+dtype_endianness_modifier()
+{
+  union {
+    uint32_t i;
+    char c[4];
+  } x = {0x0A0B0C0D};
+  bool is_little_endian =
+    (x.c[0] == 0xD) and (x.c[1] == 0xC) and (x.c[2] == 0xB) and (x.c[3] == 0xA);
+  // TODO this assumes that only little and big endian exists and checks only
+  // for little. maybe verify that it always is one or the other?
+  return is_little_endian ? '<' : '>';
 }
 
 template<typename T>
@@ -453,11 +459,13 @@ dtypes_description(const T& t)
   std::size_t n = T::N;
   auto names = t.names();
   auto codes = dtypes_codes(t.to_tuple());
+  auto endianness_modifier = dtype_endianness_modifier();
   descr += '[';
   for (decltype(n) i = 0; i < n; ++i) {
     descr += "('";
     descr += names[i];
     descr += "', '";
+    descr += endianness_modifier;
     descr += codes[i];
     descr += "')";
     if ((i + 1) < n) { descr += ", "; }
