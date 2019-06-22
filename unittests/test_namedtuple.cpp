@@ -18,8 +18,9 @@ struct Record {
   bool THIS_IS_UNUSED = false;
   float b = 0;
   double c = 0;
+  bool d = false;
 
-  DFE_NAMEDTUPLE(Record, x, y, z, a, b, c)
+  DFE_NAMEDTUPLE(Record, x, y, z, a, b, c, d)
 };
 
 Record
@@ -33,6 +34,7 @@ make_record(size_t i)
   r.THIS_IS_UNUSED = ((i % 2) == 0);
   r.b = 0.23126121f * i;
   r.c = -42.53425 * i;
+  r.d = ((i % 2) != 0);
   return r;
 }
 
@@ -41,13 +43,14 @@ BOOST_TEST_DONT_PRINT_LOG_VALUE(Record::Tuple)
 BOOST_AUTO_TEST_CASE(namedtuple_names)
 {
   auto example = make_record(123);
-  BOOST_TEST(example.names().size() == 6);
+  BOOST_TEST(example.names().size() == 7);
   BOOST_TEST(example.names().at(0) == "x");
   BOOST_TEST(example.names().at(1) == "y");
   BOOST_TEST(example.names().at(2) == "z");
   BOOST_TEST(example.names().at(3) == "a");
   BOOST_TEST(example.names().at(4) == "b");
   BOOST_TEST(example.names().at(5) == "c");
+  BOOST_TEST(example.names().at(6) == "d");
 }
 
 BOOST_AUTO_TEST_CASE(nametuple_assign)
@@ -60,14 +63,16 @@ BOOST_AUTO_TEST_CASE(nametuple_assign)
   BOOST_TEST(r.a == 0);
   BOOST_TEST(r.b == 0.0f);
   BOOST_TEST(r.c == 0.0);
+  BOOST_TEST(not r.d);
   // assign namedtuple from a regular tuple
-  r = std::make_tuple(-1, 1, 2, -3, 1.23f, 6.54);
+  r = std::make_tuple(-1, 1, 2, -3, 1.23f, 6.54, true);
   BOOST_TEST(r.x == -1);
   BOOST_TEST(r.y == 1);
   BOOST_TEST(r.z == 2);
   BOOST_TEST(r.a == -3);
   BOOST_TEST(r.b == 1.23f);
   BOOST_TEST(r.c == 6.54);
+  BOOST_TEST(r.d);
 }
 
 // full write/read chain tests
