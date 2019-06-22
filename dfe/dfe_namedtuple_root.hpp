@@ -252,27 +252,27 @@ namespace namedtuple_root_impl {
 namespace {
 // WARNING this is a hack to get around inconsistent ROOT types for 8bit chars
 // and 64bit intengers compared to the stdint types.
-__attribute__((unused)) constexpr ULong64_t*
+__attribute__((unused)) inline ULong64_t*
 get_address(uint64_t& x)
 {
   static_assert(
     sizeof(ULong64_t) == sizeof(uint64_t), "Inconsistent type sizes");
   return reinterpret_cast<ULong64_t*>(&x);
 }
-__attribute__((unused)) constexpr char*
+__attribute__((unused)) inline char*
 get_address(int8_t& x)
 {
   static_assert(sizeof(char) == sizeof(int8_t), "Inconsistent type sizes");
   return reinterpret_cast<char*>(&x);
 }
-__attribute__((unused)) constexpr Long64_t*
+__attribute__((unused)) inline Long64_t*
 get_address(int64_t& x)
 {
   static_assert(sizeof(Long64_t) == sizeof(int64_t), "Inconsistent type sizes");
   return reinterpret_cast<Long64_t*>(&x);
 }
 template<typename T>
-constexpr T*
+inline T*
 get_address(T& x)
 {
   return &x;
