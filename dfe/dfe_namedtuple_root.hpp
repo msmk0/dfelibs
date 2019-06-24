@@ -143,36 +143,39 @@ inline RootNamedTupleWriter<NamedTuple>::RootNamedTupleWriter(
 
 namespace namedtuple_root_impl {
 namespace {
+// see: https://cpppatterns.com/patterns/class-template-sfinae.html
+template<typename T, typename Enable = void>
+struct TypeCode;
+// non-integer types
+template<char Code>
+struct TypeCodePlainImpl {
+  static constexpr char value = Code;
+};
+template<>
+struct TypeCode<bool> : TypeCodePlainImpl<'O'> {};
+template<>
+struct TypeCode<float> : TypeCodePlainImpl<'F'> {};
+template<>
+struct TypeCode<double> : TypeCodePlainImpl<'D'> {};
+// integer types
+// you might think that you could just define this for all the stdint types;
+// but no, this breaks because ROOT [U]Long64_t might not be the same type as
+// [u]int64_t depending on the machine, os, moon phase, ... .
+// Why you ask? Because the universe hates you.
+template<typename T, char Unsigned, char Signed>
+struct TypeCodeIntImpl {
+  static constexpr char value = std::is_unsigned<T>::value ? Unsigned : Signed;
+};
+template<typename T, std::size_t S>
+constexpr bool is_integer_with_size_v = std::is_integral<T>::value and (sizeof(T) == S);
 template<typename T>
-constexpr std::enable_if_t<false, T> kRootTypeCode;
-template<>
-constexpr char kRootTypeCode<bool> = 'O';
-template<>
-constexpr char kRootTypeCode<uint8_t> = 'b';
-template<>
-constexpr char kRootTypeCode<uint16_t> = 's';
-template<>
-constexpr char kRootTypeCode<uint32_t> = 'i';
-template<>
-constexpr char kRootTypeCode<uint64_t> = 'l';
-template<>
-constexpr char kRootTypeCode<ULong64_t> = 'l';
-template<>
-constexpr char kRootTypeCode<char> = 'B';
-template<>
-constexpr char kRootTypeCode<int8_t> = 'B';
-template<>
-constexpr char kRootTypeCode<int16_t> = 'S';
-template<>
-constexpr char kRootTypeCode<int32_t> = 'I';
-template<>
-constexpr char kRootTypeCode<int64_t> = 'L';
-template<>
-constexpr char kRootTypeCode<Long64_t> = 'L';
-template<>
-constexpr char kRootTypeCode<float> = 'F';
-template<>
-constexpr char kRootTypeCode<double> = 'D';
+struct TypeCode<T, typename std::enable_if_t<is_integer_with_size_v<T, 1>>> : TypeCodeIntImpl<T, 'b', 'B'> {};
+template<typename T>
+struct TypeCode<T, typename std::enable_if_t<is_integer_with_size_v<T, 2>>> : TypeCodeIntImpl<T, 's', 'S'> {};
+template<typename T>
+struct TypeCode<T, typename std::enable_if_t<is_integer_with_size_v<T, 4>>> : TypeCodeIntImpl<T, 'i', 'I'> {};
+template<typename T>
+struct TypeCode<T, typename std::enable_if_t<is_integer_with_size_v<T, 8>>> : TypeCodeIntImpl<T, 'l', 'L'> {};
 } // namespace
 } // namespace namedtuple_root_impl
 
@@ -187,8 +190,8 @@ RootNamedTupleWriter<NamedTuple>::setup_branches(std::index_sequence<I...>)
   std::array<std::string, sizeof...(I)> names = NamedTuple::names();
   std::array<std::string, sizeof...(I)> leafs = {
     (names[I] + '/' +
-     namedtuple_root_impl::kRootTypeCode<
-       std::tuple_element_t<I, typename NamedTuple::Tuple>>)...};
+     namedtuple_root_impl::TypeCode<
+       std::tuple_element_t<I, typename NamedTuple::Tuple>>::value)...};
   // construct branches
   // NOTE 2019-05-13 msmk:
   // the documentation suggests that ROOT can figure out the branch types on
