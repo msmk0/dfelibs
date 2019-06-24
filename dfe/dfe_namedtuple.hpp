@@ -437,7 +437,7 @@ dtypes_codes(const std::tuple<Types...>& t)
 //
 // Derived from:
 // https://stackoverflow.com/questions/1001307/detecting-endianness-programmatically-in-a-c-program
-constexpr char
+inline char
 dtype_endianness_modifier()
 {
   union {
