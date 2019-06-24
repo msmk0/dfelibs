@@ -12,7 +12,7 @@ stages:
     - cd build
     - cmake -GNinja -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ..
     - cmake --build .
-    - cmake --build . -- test
+    - ctest --output-on-failure
 
 .build-lcg94:
   extends: .build
