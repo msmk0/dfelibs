@@ -1,5 +1,7 @@
 # minimal version that provides test v3
 find_package(Boost 1.59 REQUIRED COMPONENTS unit_test_framework)
+# optional, for namedtuple_python test
+find_package(PythonInterp 3.5)
 # optional, for namedtuple_root test
 find_package(ROOT 6.10)
 
@@ -21,6 +23,14 @@ add_unittest(flatmap)
 add_unittest(flatset)
 add_unittest(histogram)
 add_unittest(namedtuple)
+if(PYTHONINTERP_FOUND)
+  add_test(
+    NAME namedtuple_numpy
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_namedtuple_numpy.py)
+  # python test use the output written by the namedtuple test
+  set_tests_properties(namedtuple PROPERTIES FIXTURES_SETUP namedtuple)
+  set_tests_properties(namedtuple_numpy PROPERTIES FIXTURES_REQUIRED namedtuple)
+endif()
 if(ROOT_FOUND)
   add_unittest(namedtuple_root)
   # ROOT might require C++17 but does not advertise it
