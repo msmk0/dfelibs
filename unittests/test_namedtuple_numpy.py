@@ -1,6 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 #
 # Read in files written by `dfe_namedtuple.hpp` with numpy and check content
+
+from __future__ import print_function
 
 import os.path
 

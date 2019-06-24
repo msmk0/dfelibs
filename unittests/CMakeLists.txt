@@ -1,7 +1,7 @@
 # minimal version that provides test v3
 find_package(Boost 1.59 REQUIRED COMPONENTS unit_test_framework)
 # optional, for namedtuple_python test
-find_package(PythonInterp 3.5)
+find_package(PythonInterp 2.7)
 # optional, for namedtuple_root test
 find_package(ROOT 6.10)
 
