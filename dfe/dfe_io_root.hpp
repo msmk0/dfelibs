@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 /// \file
-/// \brief   ROOT-based storage of named tuples; requires named tuples library
+/// \brief   Wrappers to simplify reading/writing ROOT TTree-based files
 /// \author  Moritz Kiehn <msmk@cern.ch>
 /// \date    2019-04-00, Initial version
 
@@ -152,11 +152,14 @@ struct TypeCodePlainImpl {
   static constexpr char value = Code;
 };
 template<>
-struct TypeCode<bool> : TypeCodePlainImpl<'O'> {};
+struct TypeCode<bool> : TypeCodePlainImpl<'O'> {
+};
 template<>
-struct TypeCode<float> : TypeCodePlainImpl<'F'> {};
+struct TypeCode<float> : TypeCodePlainImpl<'F'> {
+};
 template<>
-struct TypeCode<double> : TypeCodePlainImpl<'D'> {};
+struct TypeCode<double> : TypeCodePlainImpl<'D'> {
+};
 // integer types
 // you might think that you could just define this for all the stdint types;
 // but no, this breaks because ROOT [U]Long64_t might not be the same type as
@@ -167,15 +170,24 @@ struct TypeCodeIntImpl {
   static constexpr char value = std::is_unsigned<T>::value ? Unsigned : Signed;
 };
 template<typename T, std::size_t S>
-constexpr bool is_integer_with_size_v = std::is_integral<T>::value and (sizeof(T) == S);
+constexpr bool is_integer_with_size_v = std::is_integral<T>::value and
+                                        (sizeof(T) == S);
 template<typename T>
-struct TypeCode<T, typename std::enable_if_t<is_integer_with_size_v<T, 1>>> : TypeCodeIntImpl<T, 'b', 'B'> {};
+struct TypeCode<T, typename std::enable_if_t<is_integer_with_size_v<T, 1>>>
+  : TypeCodeIntImpl<T, 'b', 'B'> {
+};
 template<typename T>
-struct TypeCode<T, typename std::enable_if_t<is_integer_with_size_v<T, 2>>> : TypeCodeIntImpl<T, 's', 'S'> {};
+struct TypeCode<T, typename std::enable_if_t<is_integer_with_size_v<T, 2>>>
+  : TypeCodeIntImpl<T, 's', 'S'> {
+};
 template<typename T>
-struct TypeCode<T, typename std::enable_if_t<is_integer_with_size_v<T, 4>>> : TypeCodeIntImpl<T, 'i', 'I'> {};
+struct TypeCode<T, typename std::enable_if_t<is_integer_with_size_v<T, 4>>>
+  : TypeCodeIntImpl<T, 'i', 'I'> {
+};
 template<typename T>
-struct TypeCode<T, typename std::enable_if_t<is_integer_with_size_v<T, 8>>> : TypeCodeIntImpl<T, 'l', 'L'> {};
+struct TypeCode<T, typename std::enable_if_t<is_integer_with_size_v<T, 8>>>
+  : TypeCodeIntImpl<T, 'l', 'L'> {
+};
 } // namespace
 } // namespace namedtuple_root_impl
 
@@ -252,8 +264,7 @@ inline RootNamedTupleReader<NamedTuple>::RootNamedTupleReader(
   setup_branches(std::make_index_sequence<NamedTuple::N>());
 }
 
-namespace namedtuple_root_impl {
-namespace {
+namespace io_root_impl {
 // WARNING this is a hack to get around inconsistent ROOT types for 8bit chars
 // and 64bit intengers compared to the stdint types.
 __attribute__((unused)) inline ULong64_t*
@@ -281,8 +292,7 @@ get_address(T& x)
 {
   return &x;
 }
-} // namespace
-} // namespace namedtuple_root_impl
+} // namespace io_root_impl
 
 template<typename NamedTuple>
 template<std::size_t... I>
@@ -295,8 +305,7 @@ RootNamedTupleReader<NamedTuple>::setup_branches(std::index_sequence<I...>)
   std::array<std::string, sizeof...(I)> names = NamedTuple::names();
   // construct branches
   (void)std::array<Int_t, sizeof...(I)>{m_tree->SetBranchAddress(
-    names[I].c_str(),
-    namedtuple_root_impl::get_address(std::get<I>(m_data)))...};
+    names[I].c_str(), io_root_impl::get_address(std::get<I>(m_data)))...};
 }
 
 template<typename NamedTuple>

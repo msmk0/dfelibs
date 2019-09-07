@@ -1,13 +1,12 @@
 /// \file
-/// \brief Unit tests for named tuple root readers and writer
+/// \brief Unit tests for root i/o
 
 #include <boost/test/unit_test.hpp>
-#include <iostream>
 
 #include <cstdint>
 
+#include <dfe/dfe_io_root.hpp>
 #include <dfe/dfe_namedtuple.hpp>
-#include <dfe/dfe_namedtuple_root.hpp>
 
 static constexpr size_t kNRecords = 4096;
 
@@ -93,7 +92,7 @@ make_record(size_t i)
 
 BOOST_TEST_DONT_PRINT_LOG_VALUE(Record::Tuple)
 
-BOOST_AUTO_TEST_CASE(namedtuple_root)
+BOOST_AUTO_TEST_CASE(root_namedtuple_write_read)
 {
   // write some data
   {

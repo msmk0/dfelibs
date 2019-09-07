@@ -2,7 +2,7 @@
 find_package(Boost 1.59 REQUIRED COMPONENTS unit_test_framework)
 # optional, for namedtuple_python test
 find_package(PythonInterp 2.7)
-# optional, for namedtuple_root test
+# optional, for io_root test
 find_package(ROOT 6.10)
 
 function(add_unittest _name)
@@ -22,6 +22,13 @@ add_unittest(dispatcher)
 add_unittest(flatmap)
 add_unittest(flatset)
 add_unittest(histogram)
+if(ROOT_FOUND)
+  add_unittest(io_root)
+  # ROOT might require C++17 but does not advertise it
+  set(_target "${PROJECT_NAME}_unittest_io_root")
+  target_compile_features(${_target} PRIVATE cxx_std_17)
+  target_link_libraries(${_target} PRIVATE ROOT::Tree)
+endif()
 add_unittest(namedtuple)
 if(PYTHONINTERP_FOUND)
   add_test(
@@ -30,13 +37,6 @@ if(PYTHONINTERP_FOUND)
   # python test use the output written by the namedtuple test
   set_tests_properties(namedtuple PROPERTIES FIXTURES_SETUP namedtuple)
   set_tests_properties(namedtuple_numpy PROPERTIES FIXTURES_REQUIRED namedtuple)
-endif()
-if(ROOT_FOUND)
-  add_unittest(namedtuple_root)
-  # ROOT might require C++17 but does not advertise it
-  set(_target "${PROJECT_NAME}_unittest_namedtuple_root")
-  target_compile_features(${_target} PRIVATE cxx_std_17)
-  target_link_libraries(${_target} PRIVATE ROOT::Tree)
 endif()
 add_unittest(poly)
 add_unittest(smallflatset)

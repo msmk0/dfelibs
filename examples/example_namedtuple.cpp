@@ -6,10 +6,10 @@
 #include <iostream>
 #include <random>
 
-#include <dfe/dfe_namedtuple.hpp>
-#ifdef DFE_USE_NAMEDTUPLE_ROOT
-#include <dfe/dfe_namedtuple_root.hpp>
+#ifdef DFE_USE_IO_ROOT
+#include <dfe/dfe_io_root.hpp>
 #endif
+#include <dfe/dfe_namedtuple.hpp>
 
 struct Data {
   uint32_t dac0;
@@ -29,7 +29,7 @@ main(int argc, char* argv[])
   dfe::TsvNamedTupleWriter<Data> tsv("test.tsv");
   // numpy writer
   dfe::NpyNamedTupleWriter<Data> npy("test.npy");
-#ifdef DFE_USE_NAMEDTUPLE_ROOT
+#ifdef DFE_USE_IO_ROOT
   // (optional) ROOT writer
   dfe::RootNamedTupleWriter<Data> roo("test.root", "records");
 #endif
@@ -52,7 +52,7 @@ main(int argc, char* argv[])
     csv.append(x);
     tsv.append(x);
     npy.append(x);
-#ifdef DFE_USE_NAMEDTUPLE_ROOT
+#ifdef DFE_USE_IO_ROOT
     roo.append(x);
 #endif
 
