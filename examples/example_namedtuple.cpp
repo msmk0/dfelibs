@@ -6,10 +6,11 @@
 #include <iostream>
 #include <random>
 
+#include <dfe/dfe_io_numpy.hpp>
+#include <dfe/dfe_namedtuple.hpp>
 #ifdef DFE_USE_IO_ROOT
 #include <dfe/dfe_io_root.hpp>
 #endif
-#include <dfe/dfe_namedtuple.hpp>
 
 struct Data {
   uint32_t dac0;
