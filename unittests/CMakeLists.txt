@@ -22,6 +22,7 @@ add_unittest(dispatcher)
 add_unittest(flatmap)
 add_unittest(flatset)
 add_unittest(histogram)
+add_unittest(io_numpy)
 if(ROOT_FOUND)
   add_unittest(io_root)
   # ROOT might require C++17 but does not advertise it

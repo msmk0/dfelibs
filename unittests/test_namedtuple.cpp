@@ -106,18 +106,6 @@ BOOST_AUTO_TEST_CASE(namedtuple_tsv)
   }
 }
 
-BOOST_AUTO_TEST_CASE(namedtuple_npy)
-{
-  // write some data
-  {
-    dfe::NpyNamedTupleWriter<Record> writer("test.npy");
-
-    for (size_t i = 0; i < kNRecords; ++i) {
-      BOOST_CHECK_NO_THROW(writer.append(make_record(i)));
-    }
-  }
-}
-
 // failure tests for readers
 
 // construct a path to an example data file
