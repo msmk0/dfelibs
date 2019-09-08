@@ -31,15 +31,17 @@ if(ROOT_FOUND)
   target_compile_features(${_target} PRIVATE cxx_std_17)
   target_link_libraries(${_target} PRIVATE ROOT::Tree)
 endif()
-add_unittest(namedtuple)
 if(PYTHONINTERP_FOUND)
   add_test(
-    NAME namedtuple_numpy
-    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_namedtuple_numpy.py)
+    NAME io_read_from_python
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_io_read_from_python.py)
   # python test use the output written by the namedtuple test
-  set_tests_properties(namedtuple PROPERTIES FIXTURES_SETUP namedtuple)
-  set_tests_properties(namedtuple_numpy PROPERTIES FIXTURES_REQUIRED namedtuple)
+  set_tests_properties(io_dsv PROPERTIES FIXTURES_SETUP io_read_from_python)
+  set_tests_properties(io_numpy PROPERTIES FIXTURES_SETUP io_read_from_python)
+  set_tests_properties(io_read_from_python PROPERTIES FIXTURES_REQUIRED io_read_from_python)
 endif()
+add_unittest(namedtuple)
+
 add_unittest(poly)
 add_unittest(smallflatset)
 add_unittest(smallvector)
