@@ -3,8 +3,9 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <dfe/dfe_namedtuple.hpp>
 #include "record.hpp"
+#include <dfe/dfe_io_dsv.hpp>
+#include <dfe/dfe_namedtuple.hpp>
 
 static constexpr size_t kNRecords = 1024;
 
