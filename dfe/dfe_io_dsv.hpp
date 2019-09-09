@@ -35,6 +35,7 @@
 #include <utility>
 
 namespace dfe {
+namespace io_dsv_impl {
 
 /// Write records as delimiter-separated values into a text file.
 template<typename NamedTuple>
@@ -106,54 +107,6 @@ private:
   std::string m_line;
   std::array<std::string, NamedTuple::N> m_columns;
   std::size_t m_num_lines;
-};
-
-/// Write records as a comma-separated values into a text file.
-template<typename NamedTuple>
-class CsvNamedTupleWriter : public TextNamedTupleWriter<NamedTuple> {
-public:
-  /// Create a csv file at the given path. Overwrites existing data.
-  CsvNamedTupleWriter(
-    const std::string& path,
-    int precision = (std::numeric_limits<double>::max_digits10 + 1))
-    : TextNamedTupleWriter<NamedTuple>(path, ',', precision)
-  {
-  }
-};
-
-/// Write records as a tab-separated values into a text file.
-template<typename NamedTuple>
-class TsvNamedTupleWriter : public TextNamedTupleWriter<NamedTuple> {
-public:
-  /// Create a tsv file at the given path. Overwrites existing data.
-  TsvNamedTupleWriter(
-    const std::string& path,
-    int precision = (std::numeric_limits<double>::max_digits10 + 1))
-    : TextNamedTupleWriter<NamedTuple>(path, '\t', precision)
-  {
-  }
-};
-
-/// Read records from a comma-separated file.
-template<typename NamedTuple>
-class CsvNamedTupleReader : public TextNamedTupleReader<NamedTuple> {
-public:
-  /// Open a csv file at the given path.
-  CsvNamedTupleReader(const std::string& path, bool verify_header = true)
-    : TextNamedTupleReader<NamedTuple>(path, ',', verify_header)
-  {
-  }
-};
-
-/// Read records from a tab-separated file.
-template<typename NamedTuple>
-class TsvNamedTupleReader : public TextNamedTupleReader<NamedTuple> {
-public:
-  /// Open a tsv file at the given path.
-  TsvNamedTupleReader(const std::string& path, bool verify_header = true)
-    : TextNamedTupleReader<NamedTuple>(path, '\t', verify_header)
-  {
-  }
 };
 
 // implementation text writer
@@ -289,5 +242,59 @@ TextNamedTupleReader<NamedTuple>::parse_line(std::index_sequence<I...>) const
     0, ((std::istringstream(m_columns[I]) >> std::get<I>(values)), 0)...};
   return values;
 }
+
+} // namespace io_dsv_impl
+
+/// Write records as a comma-separated values into a text file.
+template<typename NamedTuple>
+class CsvNamedTupleWriter
+  : public io_dsv_impl::TextNamedTupleWriter<NamedTuple> {
+public:
+  /// Create a csv file at the given path. Overwrites existing data.
+  CsvNamedTupleWriter(
+    const std::string& path,
+    int precision = (std::numeric_limits<double>::max_digits10 + 1))
+    : io_dsv_impl::TextNamedTupleWriter<NamedTuple>(path, ',', precision)
+  {
+  }
+};
+
+/// Write records as a tab-separated values into a text file.
+template<typename NamedTuple>
+class TsvNamedTupleWriter
+  : public io_dsv_impl::TextNamedTupleWriter<NamedTuple> {
+public:
+  /// Create a tsv file at the given path. Overwrites existing data.
+  TsvNamedTupleWriter(
+    const std::string& path,
+    int precision = (std::numeric_limits<double>::max_digits10 + 1))
+    : io_dsv_impl::TextNamedTupleWriter<NamedTuple>(path, '\t', precision)
+  {
+  }
+};
+
+/// Read records from a comma-separated file.
+template<typename NamedTuple>
+class CsvNamedTupleReader
+  : public io_dsv_impl::TextNamedTupleReader<NamedTuple> {
+public:
+  /// Open a csv file at the given path.
+  CsvNamedTupleReader(const std::string& path, bool verify_header = true)
+    : io_dsv_impl::TextNamedTupleReader<NamedTuple>(path, ',', verify_header)
+  {
+  }
+};
+
+/// Read records from a tab-separated file.
+template<typename NamedTuple>
+class TsvNamedTupleReader
+  : public io_dsv_impl::TextNamedTupleReader<NamedTuple> {
+public:
+  /// Open a tsv file at the given path.
+  TsvNamedTupleReader(const std::string& path, bool verify_header = true)
+    : io_dsv_impl::TextNamedTupleReader<NamedTuple>(path, '\t', verify_header)
+  {
+  }
+};
 
 } // namespace dfe
