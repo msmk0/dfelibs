@@ -38,7 +38,7 @@ namespace dfe {
 namespace io_dsv_impl {
 
 /// Write records as delimiter-separated values into a text file.
-template<typename NamedTuple>
+template<char Delimiter, typename NamedTuple>
 class DsvWriter {
 public:
   DsvWriter() = delete;
@@ -51,9 +51,10 @@ public:
   /// Create a file at the given path. Overwrites existing data.
   ///
   /// \param path       Path to the output file
-  /// \param delimiter  Delimiter to separate values within one record
   /// \param precision  Output floating point precision
-  DsvWriter(const std::string& path, char delimiter, int precision);
+  DsvWriter(
+    const std::string& path,
+    int precision = (std::numeric_limits<double>::max_digits10 + 1));
 
   /// Append a record to the file.
   void append(const NamedTuple& record);
@@ -63,7 +64,6 @@ private:
   void write_line(const TupleLike& values, std::index_sequence<I...>);
 
   std::ofstream m_file;
-  char m_delimiter;
 };
 
 /// Read records as delimiter-separated values from a text file.
@@ -110,10 +110,9 @@ private:
 
 // implementation text writer
 
-template<typename NamedTuple>
-inline DsvWriter<NamedTuple>::DsvWriter(
-  const std::string& path, char delimiter, int precision)
-  : m_delimiter(delimiter)
+template<char Delimiter, typename NamedTuple>
+inline DsvWriter<Delimiter, NamedTuple>::DsvWriter(
+  const std::string& path, int precision)
 {
   // make our life easier. always throw on error
   m_file.exceptions(std::ofstream::badbit | std::ofstream::failbit);
@@ -125,17 +124,17 @@ inline DsvWriter<NamedTuple>::DsvWriter(
   write_line(NamedTuple::names(), std::make_index_sequence<NamedTuple::N>{});
 }
 
-template<typename NamedTuple>
+template<char Delimiter, typename NamedTuple>
 inline void
-DsvWriter<NamedTuple>::append(const NamedTuple& record)
+DsvWriter<Delimiter, NamedTuple>::append(const NamedTuple& record)
 {
   write_line(record.to_tuple(), std::make_index_sequence<NamedTuple::N>{});
 }
 
-template<typename NamedTuple>
+template<char Delimiter, typename NamedTuple>
 template<typename TupleLike, std::size_t... I>
 inline void
-DsvWriter<NamedTuple>::write_line(
+DsvWriter<Delimiter, NamedTuple>::write_line(
   const TupleLike& values, std::index_sequence<I...>)
 {
   // this is a bit like magic, here is whats going on:
@@ -148,7 +147,7 @@ DsvWriter<NamedTuple>::write_line(
   std::size_t col = 0;
   (void)swallow{0, (void(
                       m_file << std::get<I>(values)
-                             << ((++col < sizeof...(I)) ? m_delimiter : '\n')),
+                             << ((++col < sizeof...(I)) ? Delimiter : '\n')),
                     0)...};
 }
 
@@ -246,29 +245,11 @@ DsvReader<NamedTuple>::parse_line(std::index_sequence<I...>) const
 
 /// Write records as a comma-separated values into a text file.
 template<typename NamedTuple>
-class CsvNamedTupleWriter : public io_dsv_impl::DsvWriter<NamedTuple> {
-public:
-  /// Create a csv file at the given path. Overwrites existing data.
-  CsvNamedTupleWriter(
-    const std::string& path,
-    int precision = (std::numeric_limits<double>::max_digits10 + 1))
-    : io_dsv_impl::DsvWriter<NamedTuple>(path, ',', precision)
-  {
-  }
-};
+using CsvNamedTupleWriter = io_dsv_impl::DsvWriter<',', NamedTuple>;
 
 /// Write records as a tab-separated values into a text file.
 template<typename NamedTuple>
-class TsvNamedTupleWriter : public io_dsv_impl::DsvWriter<NamedTuple> {
-public:
-  /// Create a tsv file at the given path. Overwrites existing data.
-  TsvNamedTupleWriter(
-    const std::string& path,
-    int precision = (std::numeric_limits<double>::max_digits10 + 1))
-    : io_dsv_impl::DsvWriter<NamedTuple>(path, '\t', precision)
-  {
-  }
-};
+using TsvNamedTupleWriter = io_dsv_impl::DsvWriter<'\t', NamedTuple>;
 
 /// Read records from a comma-separated file.
 template<typename NamedTuple>
