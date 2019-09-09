@@ -96,14 +96,13 @@ h1.fill(0.25, 4.0, 65);      // axis 1 overflow
 h1.fill(2.25, 1.0, 65);      // fails, due to axis 0 overflow
 ```
 
-Named tuple
------------
+Namedtuple
+----------
 
 Add some self-awareness to a POD type
 
 ```cpp
 #include <dfe/dfe_namedtuple.hpp>
-#include <dfe/dfe_namedtuple_root.hpp> // optional, requires ROOT
 
 struct Record {
   uint32_t x;
@@ -116,6 +115,10 @@ struct Record {
 and write it to disk in multiple formats:
 
 ```cpp
+#include <dfe/dfe_io_dsv.hpp> // delimiter-separated values, i.e. csv or tsv
+#include <dfe/dfe_io_numpy.hpp>
+#include <dfe/dfe_io_root.hpp> // requires ROOT
+
 dfe::CsvNamedTupleWriter<Record> csv("records.csv"); // or
 dfe::TsvNamedTupleWriter<Record> tsv("records.tsv"); // or
 dfe::NpyNamedTupleWriter<Record> npy("records.npy"); // or
@@ -137,11 +140,10 @@ tab-separated text values
     ...
 
 binary [NPY][npy] data or a [ROOT][root] `TTree`. The last option requires the
-[ROOT][root] library as an additional external dependency and is therefore
-separated from the rest.
+[ROOT][root] library as an additional external dependency.
 
-Data stored in one of the text-based formats or as a ROOT tree can also be read
-back in:
+Data stored in one of the delimiter-based formats or as a ROOT tree can also be
+read back in:
 
 ```cpp
 dfe::TsvNamedTupleReader<Record> tsv("records.tsv");
@@ -149,6 +151,15 @@ dfe::RootNamedTupleReader<Record> root("records.root", "treename");
 
 Record data;
 tsv.read(data); // same call for other readers
+```
+
+Delimiter-based readers support arbitrary column order and extra columns that
+are not part of the namedtuple definition. If needed, they can be read as
+
+```cpp
+Record data;
+std::vector<double> extra;
+tsv.read(data, extra); // always convert all extra columns to the same type
 ```
 
 Poly
