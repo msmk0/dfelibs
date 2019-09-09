@@ -101,7 +101,6 @@ private:
   TupleLike parse_line(std::index_sequence<I...>) const;
 
   std::ifstream m_file;
-  std::string m_line;
   std::array<std::string, NamedTuple::N> m_columns;
   std::size_t m_num_lines;
 };
@@ -188,37 +187,39 @@ template<char Delimiter, typename NamedTuple>
 inline bool
 DsvReader<Delimiter, NamedTuple>::read_line()
 {
-  // read a full line
-  std::getline(m_file, m_line, '\n');
-  if (!m_file.good()) { return false; }
-  // split into columns
-  std::size_t icol = 0;
-  std::size_t pos = 0;
-  for (; (icol < m_columns.size()) and (pos < m_line.size()); ++icol) {
-    std::size_t token = m_line.find(Delimiter, pos);
-    if (token == pos) {
-      throw std::runtime_error(
-        "Empty column " + std::to_string(icol) + " in line " +
-        std::to_string(m_num_lines));
-    }
-    if (token == std::string::npos) {
-      // we are at the last column
-      m_columns[icol] = m_line.substr(pos);
-      pos = m_line.size();
+  constexpr std::ifstream::int_type end_of_column = Delimiter;
+  constexpr std::ifstream::int_type end_of_line = '\n';
+  constexpr std::ifstream::int_type end_of_file =
+    std::ifstream::traits_type::eof();
+  constexpr std::size_t expected_columns = NamedTuple::N;
+
+  // read single line and split it into columns
+  std::size_t ncolumns = 0;
+  std::string column;
+  while (true) {
+    auto c = m_file.get();
+    if (c == end_of_file) {
+      return false;
+    } else if (c == end_of_line) {
+      // end-of-line terminates the last column
+      m_columns[ncolumns++] = column;
+      break;
+    } else if (c == end_of_column) {
+      m_columns[ncolumns++] = column;
+      // end-of-column token means there should be at aleast one more column
+      // and we can already check now for column count mismatches
+      if (expected_columns < (ncolumns + 1)) {
+        throw std::runtime_error(
+          "Too many columns in line " + std::to_string(m_num_lines));
+      }
+      column.clear();
     } else {
-      // exclude the delimiter from the extracted column
-      m_columns[icol] = m_line.substr(pos, token - pos);
-      // continue next search after the delimiter
-      pos = token + 1;
+      column.push_back(c);
     }
   }
-  if (icol < m_columns.size()) {
+  if (ncolumns < expected_columns) {
     throw std::runtime_error(
       "Too few columns in line " + std::to_string(m_num_lines));
-  }
-  if (pos < m_line.size()) {
-    throw std::runtime_error(
-      "Too many columns in line " + std::to_string(m_num_lines));
   }
   m_num_lines += 1;
   return true;
