@@ -97,8 +97,9 @@ public:
 
 private:
   bool read_line();
+  void parse_header() const;
   template<typename TupleLike, std::size_t... I>
-  TupleLike parse_line(std::index_sequence<I...>) const;
+  void parse_record(TupleLike& record, std::index_sequence<I...>) const;
 
   std::ifstream m_file;
   std::array<std::string, NamedTuple::N> m_columns;
@@ -159,15 +160,8 @@ inline DsvReader<Delimiter, NamedTuple>::DsvReader(
   m_file.exceptions(std::ofstream::badbit);
   m_file.open(path, std::ios_base::binary | std::ios_base::in);
   if (verify_header) {
-    if (!read_line()) { throw std::runtime_error("Invalid file header"); };
-    const auto& expected = NamedTuple::names();
-    for (std::size_t i = 0; i < NamedTuple::N; ++i) {
-      if (expected[i] != m_columns[i]) {
-        throw std::runtime_error(
-          "Invalid header column=" + std::to_string(i) + " expected='" +
-          expected[i] + "' seen='" + m_columns[i] + "'");
-      }
-    }
+    if (not read_line()) { throw std::runtime_error("Invalid file header"); };
+    parse_header();
   } else {
     m_file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
   }
@@ -177,9 +171,10 @@ template<char Delimiter, typename NamedTuple>
 inline bool
 DsvReader<Delimiter, NamedTuple>::read(NamedTuple& record)
 {
-  if (!read_line()) { return false; }
-  record = parse_line<typename NamedTuple::Tuple>(
-    std::make_index_sequence<NamedTuple::N>{});
+  if (not read_line()) { return false; }
+  typename NamedTuple::Tuple values;
+  parse_record(values, std::make_index_sequence<NamedTuple::N>{});
+  record = values;
   return true;
 }
 
@@ -226,17 +221,30 @@ DsvReader<Delimiter, NamedTuple>::read_line()
 }
 
 template<char Delimiter, typename NamedTuple>
+inline void
+DsvReader<Delimiter, NamedTuple>::parse_header() const
+{
+  // ensure correct column names
+  const auto& expected = NamedTuple::names();
+  for (std::size_t i = 0; i < NamedTuple::N; ++i) {
+    if (expected[i] != m_columns[i]) {
+      throw std::runtime_error(
+        "Invalid header column=" + std::to_string(i) + " expected='" +
+        expected[i] + "' seen='" + m_columns[i] + "'");
+    }
+  }
+}
+
+template<char Delimiter, typename NamedTuple>
 template<typename TupleLike, std::size_t... I>
-inline TupleLike
-DsvReader<Delimiter, NamedTuple>::parse_line(std::index_sequence<I...>) const
+inline void
+DsvReader<Delimiter, NamedTuple>::parse_record(
+  TupleLike& record, std::index_sequence<I...>) const
 {
   // see write_line implementation in text writer for explanation
-  TupleLike values;
-  std::istringstream is;
   using swallow = int[];
   (void)swallow{
-    0, ((std::istringstream(m_columns[I]) >> std::get<I>(values)), 0)...};
-  return values;
+    0, ((std::istringstream(m_columns[I]) >> std::get<I>(record)), 0)...};
 }
 
 } // namespace io_dsv_impl
