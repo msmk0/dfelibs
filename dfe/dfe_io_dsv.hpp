@@ -25,6 +25,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <fstream>
 #include <limits>
@@ -100,12 +101,14 @@ public:
 
 private:
   bool read_line();
-  void parse_header() const;
+  void parse_header();
   template<typename TupleLike, std::size_t... I>
   void parse_record(TupleLike& record, std::index_sequence<I...>) const;
 
   std::ifstream m_file;
   std::array<std::string, NamedTuple::N> m_columns;
+  // map the tuple index to the column index where it is stored
+  std::array<std::size_t, NamedTuple::N> m_tuple_to_column;
   std::size_t m_num_lines;
   std::size_t m_num_records;
 };
@@ -167,6 +170,10 @@ inline DsvReader<Delimiter, NamedTuple>::DsvReader(
     parse_header();
   } else {
     m_file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    // no reordering; assume ordering in the file is the same as in the tuple
+    for (std::size_t i = 0; i < m_tuple_to_column.size(); ++i) {
+      m_tuple_to_column[i] = i;
+    }
   }
 }
 
@@ -226,16 +233,25 @@ DsvReader<Delimiter, NamedTuple>::read_line()
 
 template<char Delimiter, typename NamedTuple>
 inline void
-DsvReader<Delimiter, NamedTuple>::parse_header() const
+DsvReader<Delimiter, NamedTuple>::parse_header()
 {
-  // ensure correct column names
-  const auto& expected = NamedTuple::names();
-  for (std::size_t i = 0; i < NamedTuple::N; ++i) {
-    if (expected[i] != m_columns[i]) {
-      throw std::runtime_error(
-        "Invalid header column=" + std::to_string(i) + " expected='" +
-        expected[i] + "' seen='" + m_columns[i] + "'");
+  const auto& names = NamedTuple::names();
+
+  // check that all columns are available
+  for (const auto& name : names) {
+    auto it = std::find(m_columns.begin(), m_columns.end(), name);
+    if (it == m_columns.end()) {
+      throw std::runtime_error("Missing header column '" + name + "'");
     }
+  }
+  // determine column order
+  for (std::size_t i = 0; i < m_columns.size(); ++i) {
+    // find the position of the column in the tuple.
+    auto it = std::find(names.begin(), names.end(), m_columns[i]);
+    if (it == names.end()) {
+      throw std::runtime_error("Unknown header column '" + m_columns[i] + "'");
+    }
+    m_tuple_to_column[std::distance(names.begin(), it)] = i;
   }
 }
 
@@ -247,8 +263,10 @@ DsvReader<Delimiter, NamedTuple>::parse_record(
 {
   // see write_line implementation in text writer for explanation
   using swallow = int[];
-  (void)swallow{
-    0, (std::istringstream(m_columns[I]) >> std::get<I>(record), 0)...};
+  // allow different column ordering on file compared to the namedtuple
+  (void)swallow{0, (std::istringstream(m_columns[m_tuple_to_column[I]]) >>
+                      std::get<I>(record),
+                    0)...};
 }
 
 } // namespace io_dsv_impl
