@@ -73,7 +73,7 @@ private:
 /// **must** end with a single newline. The first row is **alway** interpreted
 /// as a header but can be skipped. If it is not skipped, the header names
 /// in each column **must** match exactly to the record member names.
-template<typename NamedTuple>
+template<char Delimiter, typename NamedTuple>
 class DsvReader {
 public:
   DsvReader() = delete;
@@ -86,9 +86,8 @@ public:
   /// Open a file at the given path.
   ///
   /// \param path           Path to the input file
-  /// \param delimiter      Delimiter to separate values within one record
-  /// \param verify_header  false to check header column names, false to skip
-  DsvReader(const std::string& path, char delimiter, bool verify_header);
+  /// \param verify_header  true to check header column names, false to skip
+  DsvReader(const std::string& path, bool verify_header = true);
 
   /// Read the next record from the file.
   ///
@@ -102,7 +101,6 @@ private:
   TupleLike parse_line(std::index_sequence<I...>) const;
 
   std::ifstream m_file;
-  char m_delimiter;
   std::string m_line;
   std::array<std::string, NamedTuple::N> m_columns;
   std::size_t m_num_lines;
@@ -153,11 +151,10 @@ DsvWriter<Delimiter, NamedTuple>::write_line(
 
 // implementation text reader
 
-template<typename NamedTuple>
-inline DsvReader<NamedTuple>::DsvReader(
-  const std::string& path, char delimiter, bool verify_header)
-  : m_delimiter(delimiter)
-  , m_num_lines(0)
+template<char Delimiter, typename NamedTuple>
+inline DsvReader<Delimiter, NamedTuple>::DsvReader(
+  const std::string& path, bool verify_header)
+  : m_num_lines(0)
 {
   // make our life easier. always throw on error
   m_file.exceptions(std::ofstream::badbit);
@@ -177,9 +174,9 @@ inline DsvReader<NamedTuple>::DsvReader(
   }
 }
 
-template<typename NamedTuple>
+template<char Delimiter, typename NamedTuple>
 inline bool
-DsvReader<NamedTuple>::read(NamedTuple& record)
+DsvReader<Delimiter, NamedTuple>::read(NamedTuple& record)
 {
   if (!read_line()) { return false; }
   record = parse_line<typename NamedTuple::Tuple>(
@@ -187,9 +184,9 @@ DsvReader<NamedTuple>::read(NamedTuple& record)
   return true;
 }
 
-template<typename NamedTuple>
+template<char Delimiter, typename NamedTuple>
 inline bool
-DsvReader<NamedTuple>::read_line()
+DsvReader<Delimiter, NamedTuple>::read_line()
 {
   // read a full line
   std::getline(m_file, m_line, '\n');
@@ -198,7 +195,7 @@ DsvReader<NamedTuple>::read_line()
   std::size_t icol = 0;
   std::size_t pos = 0;
   for (; (icol < m_columns.size()) and (pos < m_line.size()); ++icol) {
-    std::size_t token = m_line.find(m_delimiter, pos);
+    std::size_t token = m_line.find(Delimiter, pos);
     if (token == pos) {
       throw std::runtime_error(
         "Empty column " + std::to_string(icol) + " in line " +
@@ -227,10 +224,10 @@ DsvReader<NamedTuple>::read_line()
   return true;
 }
 
-template<typename NamedTuple>
+template<char Delimiter, typename NamedTuple>
 template<typename TupleLike, std::size_t... I>
 inline TupleLike
-DsvReader<NamedTuple>::parse_line(std::index_sequence<I...>) const
+DsvReader<Delimiter, NamedTuple>::parse_line(std::index_sequence<I...>) const
 {
   // see write_line implementation in text writer for explanation
   TupleLike values;
@@ -247,30 +244,16 @@ DsvReader<NamedTuple>::parse_line(std::index_sequence<I...>) const
 template<typename NamedTuple>
 using CsvNamedTupleWriter = io_dsv_impl::DsvWriter<',', NamedTuple>;
 
+/// Read records from a comma-separated file.
+template<typename NamedTuple>
+using CsvNamedTupleReader = io_dsv_impl::DsvReader<',', NamedTuple>;
+
 /// Write records as a tab-separated values into a text file.
 template<typename NamedTuple>
 using TsvNamedTupleWriter = io_dsv_impl::DsvWriter<'\t', NamedTuple>;
 
-/// Read records from a comma-separated file.
-template<typename NamedTuple>
-class CsvNamedTupleReader : public io_dsv_impl::DsvReader<NamedTuple> {
-public:
-  /// Open a csv file at the given path.
-  CsvNamedTupleReader(const std::string& path, bool verify_header = true)
-    : io_dsv_impl::DsvReader<NamedTuple>(path, ',', verify_header)
-  {
-  }
-};
-
 /// Read records from a tab-separated file.
 template<typename NamedTuple>
-class TsvNamedTupleReader : public io_dsv_impl::DsvReader<NamedTuple> {
-public:
-  /// Open a tsv file at the given path.
-  TsvNamedTupleReader(const std::string& path, bool verify_header = true)
-    : io_dsv_impl::DsvReader<NamedTuple>(path, '\t', verify_header)
-  {
-  }
-};
+using TsvNamedTupleReader = io_dsv_impl::DsvReader<'\t', NamedTuple>;
 
 } // namespace dfe
