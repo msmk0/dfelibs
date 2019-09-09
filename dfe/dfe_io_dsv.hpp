@@ -39,21 +39,21 @@ namespace io_dsv_impl {
 
 /// Write records as delimiter-separated values into a text file.
 template<typename NamedTuple>
-class TextNamedTupleWriter {
+class DsvWriter {
 public:
-  TextNamedTupleWriter() = delete;
-  TextNamedTupleWriter(const TextNamedTupleWriter&) = delete;
-  TextNamedTupleWriter(TextNamedTupleWriter&&) = default;
-  ~TextNamedTupleWriter() = default;
-  TextNamedTupleWriter& operator=(const TextNamedTupleWriter&) = delete;
-  TextNamedTupleWriter& operator=(TextNamedTupleWriter&&) = default;
+  DsvWriter() = delete;
+  DsvWriter(const DsvWriter&) = delete;
+  DsvWriter(DsvWriter&&) = default;
+  ~DsvWriter() = default;
+  DsvWriter& operator=(const DsvWriter&) = delete;
+  DsvWriter& operator=(DsvWriter&&) = default;
 
   /// Create a file at the given path. Overwrites existing data.
   ///
   /// \param path       Path to the output file
   /// \param delimiter  Delimiter to separate values within one record
   /// \param precision  Output floating point precision
-  TextNamedTupleWriter(const std::string& path, char delimiter, int precision);
+  DsvWriter(const std::string& path, char delimiter, int precision);
 
   /// Append a record to the file.
   void append(const NamedTuple& record);
@@ -74,22 +74,21 @@ private:
 /// as a header but can be skipped. If it is not skipped, the header names
 /// in each column **must** match exactly to the record member names.
 template<typename NamedTuple>
-class TextNamedTupleReader {
+class DsvReader {
 public:
-  TextNamedTupleReader() = delete;
-  TextNamedTupleReader(const TextNamedTupleReader&) = delete;
-  TextNamedTupleReader(TextNamedTupleReader&&) = default;
-  ~TextNamedTupleReader() = default;
-  TextNamedTupleReader& operator=(const TextNamedTupleReader&) = delete;
-  TextNamedTupleReader& operator=(TextNamedTupleReader&&) = default;
+  DsvReader() = delete;
+  DsvReader(const DsvReader&) = delete;
+  DsvReader(DsvReader&&) = default;
+  ~DsvReader() = default;
+  DsvReader& operator=(const DsvReader&) = delete;
+  DsvReader& operator=(DsvReader&&) = default;
 
   /// Open a file at the given path.
   ///
   /// \param path           Path to the input file
   /// \param delimiter      Delimiter to separate values within one record
   /// \param verify_header  false to check header column names, false to skip
-  TextNamedTupleReader(
-    const std::string& path, char delimiter, bool verify_header);
+  DsvReader(const std::string& path, char delimiter, bool verify_header);
 
   /// Read the next record from the file.
   ///
@@ -112,7 +111,7 @@ private:
 // implementation text writer
 
 template<typename NamedTuple>
-inline TextNamedTupleWriter<NamedTuple>::TextNamedTupleWriter(
+inline DsvWriter<NamedTuple>::DsvWriter(
   const std::string& path, char delimiter, int precision)
   : m_delimiter(delimiter)
 {
@@ -128,7 +127,7 @@ inline TextNamedTupleWriter<NamedTuple>::TextNamedTupleWriter(
 
 template<typename NamedTuple>
 inline void
-TextNamedTupleWriter<NamedTuple>::append(const NamedTuple& record)
+DsvWriter<NamedTuple>::append(const NamedTuple& record)
 {
   write_line(record.to_tuple(), std::make_index_sequence<NamedTuple::N>{});
 }
@@ -136,7 +135,7 @@ TextNamedTupleWriter<NamedTuple>::append(const NamedTuple& record)
 template<typename NamedTuple>
 template<typename TupleLike, std::size_t... I>
 inline void
-TextNamedTupleWriter<NamedTuple>::write_line(
+DsvWriter<NamedTuple>::write_line(
   const TupleLike& values, std::index_sequence<I...>)
 {
   // this is a bit like magic, here is whats going on:
@@ -156,7 +155,7 @@ TextNamedTupleWriter<NamedTuple>::write_line(
 // implementation text reader
 
 template<typename NamedTuple>
-inline TextNamedTupleReader<NamedTuple>::TextNamedTupleReader(
+inline DsvReader<NamedTuple>::DsvReader(
   const std::string& path, char delimiter, bool verify_header)
   : m_delimiter(delimiter)
   , m_num_lines(0)
@@ -181,7 +180,7 @@ inline TextNamedTupleReader<NamedTuple>::TextNamedTupleReader(
 
 template<typename NamedTuple>
 inline bool
-TextNamedTupleReader<NamedTuple>::read(NamedTuple& record)
+DsvReader<NamedTuple>::read(NamedTuple& record)
 {
   if (!read_line()) { return false; }
   record = parse_line<typename NamedTuple::Tuple>(
@@ -191,7 +190,7 @@ TextNamedTupleReader<NamedTuple>::read(NamedTuple& record)
 
 template<typename NamedTuple>
 inline bool
-TextNamedTupleReader<NamedTuple>::read_line()
+DsvReader<NamedTuple>::read_line()
 {
   // read a full line
   std::getline(m_file, m_line, '\n');
@@ -232,7 +231,7 @@ TextNamedTupleReader<NamedTuple>::read_line()
 template<typename NamedTuple>
 template<typename TupleLike, std::size_t... I>
 inline TupleLike
-TextNamedTupleReader<NamedTuple>::parse_line(std::index_sequence<I...>) const
+DsvReader<NamedTuple>::parse_line(std::index_sequence<I...>) const
 {
   // see write_line implementation in text writer for explanation
   TupleLike values;
@@ -247,52 +246,48 @@ TextNamedTupleReader<NamedTuple>::parse_line(std::index_sequence<I...>) const
 
 /// Write records as a comma-separated values into a text file.
 template<typename NamedTuple>
-class CsvNamedTupleWriter
-  : public io_dsv_impl::TextNamedTupleWriter<NamedTuple> {
+class CsvNamedTupleWriter : public io_dsv_impl::DsvWriter<NamedTuple> {
 public:
   /// Create a csv file at the given path. Overwrites existing data.
   CsvNamedTupleWriter(
     const std::string& path,
     int precision = (std::numeric_limits<double>::max_digits10 + 1))
-    : io_dsv_impl::TextNamedTupleWriter<NamedTuple>(path, ',', precision)
+    : io_dsv_impl::DsvWriter<NamedTuple>(path, ',', precision)
   {
   }
 };
 
 /// Write records as a tab-separated values into a text file.
 template<typename NamedTuple>
-class TsvNamedTupleWriter
-  : public io_dsv_impl::TextNamedTupleWriter<NamedTuple> {
+class TsvNamedTupleWriter : public io_dsv_impl::DsvWriter<NamedTuple> {
 public:
   /// Create a tsv file at the given path. Overwrites existing data.
   TsvNamedTupleWriter(
     const std::string& path,
     int precision = (std::numeric_limits<double>::max_digits10 + 1))
-    : io_dsv_impl::TextNamedTupleWriter<NamedTuple>(path, '\t', precision)
+    : io_dsv_impl::DsvWriter<NamedTuple>(path, '\t', precision)
   {
   }
 };
 
 /// Read records from a comma-separated file.
 template<typename NamedTuple>
-class CsvNamedTupleReader
-  : public io_dsv_impl::TextNamedTupleReader<NamedTuple> {
+class CsvNamedTupleReader : public io_dsv_impl::DsvReader<NamedTuple> {
 public:
   /// Open a csv file at the given path.
   CsvNamedTupleReader(const std::string& path, bool verify_header = true)
-    : io_dsv_impl::TextNamedTupleReader<NamedTuple>(path, ',', verify_header)
+    : io_dsv_impl::DsvReader<NamedTuple>(path, ',', verify_header)
   {
   }
 };
 
 /// Read records from a tab-separated file.
 template<typename NamedTuple>
-class TsvNamedTupleReader
-  : public io_dsv_impl::TextNamedTupleReader<NamedTuple> {
+class TsvNamedTupleReader : public io_dsv_impl::DsvReader<NamedTuple> {
 public:
   /// Open a tsv file at the given path.
   TsvNamedTupleReader(const std::string& path, bool verify_header = true)
-    : io_dsv_impl::TextNamedTupleReader<NamedTuple>(path, '\t', verify_header)
+    : io_dsv_impl::DsvReader<NamedTuple>(path, '\t', verify_header)
   {
   }
 };
