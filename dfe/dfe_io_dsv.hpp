@@ -95,6 +95,9 @@ public:
   /// \returns false  if no more records are available
   bool read(NamedTuple& record);
 
+  /// Return the number of records read so far.
+  std::size_t num_records() const { return m_num_records; }
+
 private:
   bool read_line();
   void parse_header() const;
@@ -104,6 +107,7 @@ private:
   std::ifstream m_file;
   std::array<std::string, NamedTuple::N> m_columns;
   std::size_t m_num_lines;
+  std::size_t m_num_records;
 };
 
 // implementation text writer
@@ -153,6 +157,7 @@ template<char Delimiter, typename NamedTuple>
 inline DsvReader<Delimiter, NamedTuple>::DsvReader(
   const std::string& path, bool verify_header)
   : m_num_lines(0)
+  , m_num_records(0)
 {
   // make our life easier. always throw on error
   m_file.exceptions(std::ofstream::badbit);
@@ -173,6 +178,7 @@ DsvReader<Delimiter, NamedTuple>::read(NamedTuple& record)
   typename NamedTuple::Tuple values;
   parse_record(values, std::make_index_sequence<NamedTuple::N>{});
   record = values;
+  m_num_records += 1;
   return true;
 }
 
