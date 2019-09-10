@@ -54,7 +54,7 @@ public:
   /// \param precision  Output floating point precision
   DsvWriter(
     const std::string& path,
-    int precision = (std::numeric_limits<double>::max_digits10 + 1));
+    int precision = std::numeric_limits<double>::max_digits10);
 
   /// Append a record to the file.
   void append(const NamedTuple& record);
