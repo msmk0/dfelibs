@@ -43,6 +43,13 @@ BOOST_AUTO_TEST_CASE(csv_namedtuple_write_read)
     TEST_READER_RECORDS(reader);
     BOOST_TEST(reader.num_records() == kNRecords);
   }
+  // read the data back w/o verifying the header
+  {
+    dfe::CsvNamedTupleReader<Record> reader("test.csv", false);
+
+    TEST_READER_RECORDS(reader);
+    BOOST_TEST(reader.num_records() == kNRecords);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(tsv_namedtuple_write_read)
@@ -58,6 +65,13 @@ BOOST_AUTO_TEST_CASE(tsv_namedtuple_write_read)
   // read the data back
   {
     dfe::TsvNamedTupleReader<Record> reader("test.tsv");
+
+    TEST_READER_RECORDS(reader);
+    BOOST_TEST(reader.num_records() == kNRecords);
+  }
+  // read the data back w/o verifying the header
+  {
+    dfe::TsvNamedTupleReader<Record> reader("test.tsv", false);
 
     TEST_READER_RECORDS(reader);
     BOOST_TEST(reader.num_records() == kNRecords);
