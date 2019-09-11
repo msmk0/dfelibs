@@ -95,11 +95,9 @@ print_tuple(
   std::ostream& os, const Tuple& t, const Names& n, std::index_sequence<I...>)
 {
   using swallow = int[];
-  std::size_t idx = 0;
-  (void)swallow{0, (void(
-                      os << ((0 < idx++) ? " " : "") << std::get<I>(n) << "="
-                         << std::get<I>(t)),
-                    0)...};
+  (void)swallow{
+    (os << ((0 < I) ? " " : "") << std::get<I>(n) << "=" << std::get<I>(t),
+     0)...};
   return os;
 }
 
