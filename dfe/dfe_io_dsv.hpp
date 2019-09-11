@@ -136,16 +136,14 @@ DsvWriter<Delimiter, NamedTuple>::write_line(
   const TupleLike& values, std::index_sequence<I...>)
 {
   // this is a bit like magic, here is whats going on:
-  // the (void(<expr>), 0) expression evaluates <expr>, ignores its return value
-  // by casting it to void, and then returns an integer with value 0 by virtue
-  // of the comma operator (yes, ',' can also be an operator with a very weird
-  // but helpful function). The ... pack expansion creates this expression for
-  // each entry in the index pack I, effectively looping over the indices.
+  // the (<expr>, 0) expression evaluates <expr>, ignores its return value
+  // and then returns an integer with value 0 by virtue of the comma operator
+  // (yes, ',' can also be an operator with a very weird but helpful function).
+  // The ... pack expansion creates this expression for each entry in the index
+  // pack I, effectively looping over the indices at compile time.
   using swallow = int[];
-  std::size_t col = 0;
-  (void)swallow{0, (void(
-                      m_file << std::get<I>(values)
-                             << ((++col < sizeof...(I)) ? Delimiter : '\n')),
+  (void)swallow{0, (m_file << std::get<I>(values)
+                           << (((I + 1) < sizeof...(I)) ? Delimiter : '\n'),
                     0)...};
 }
 
@@ -244,7 +242,7 @@ DsvReader<Delimiter, NamedTuple>::parse_record(
   // see write_line implementation in text writer for explanation
   using swallow = int[];
   (void)swallow{
-    0, ((std::istringstream(m_columns[I]) >> std::get<I>(record)), 0)...};
+    0, (std::istringstream(m_columns[I]) >> std::get<I>(record), 0)...};
 }
 
 } // namespace io_dsv_impl
