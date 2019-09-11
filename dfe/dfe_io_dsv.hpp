@@ -34,6 +34,7 @@
 #include <string>
 #include <tuple>
 #include <utility>
+#include <vector>
 
 namespace dfe {
 namespace io_dsv_impl {
@@ -96,6 +97,8 @@ public:
   /// \returns false  if no more records are available
   bool read(NamedTuple& record);
 
+  /// Return the number of additional columns that are not part of the tuple.
+  std::size_t num_extra_columns() const { return m_extra_columns.size(); }
   /// Return the number of records read so far.
   std::size_t num_records() const { return m_num_records; }
 
@@ -106,11 +109,15 @@ private:
   void parse_record(TupleLike& record, std::index_sequence<I...>) const;
 
   std::ifstream m_file;
-  std::array<std::string, NamedTuple::N> m_columns;
-  // map the tuple index to the column index where it is stored
+  std::vector<std::string> m_columns;
+  std::size_t m_num_lines = 0;
+  std::size_t m_num_records = 0;
+  // will be fixed after reading the header
+  std::size_t m_num_columns = SIZE_MAX;
+  // map the tuple index to the corresponding column index on file.
   std::array<std::size_t, NamedTuple::N> m_tuple_to_column;
-  std::size_t m_num_lines;
-  std::size_t m_num_records;
+  // column indices that do not map to a tuple item.
+  std::vector<std::size_t> m_extra_columns;
 };
 
 // implementation text writer
@@ -159,8 +166,6 @@ DsvWriter<Delimiter, NamedTuple>::write_line(
 template<char Delimiter, typename NamedTuple>
 inline DsvReader<Delimiter, NamedTuple>::DsvReader(
   const std::string& path, bool verify_header)
-  : m_num_lines(0)
-  , m_num_records(0)
 {
   // make our life easier. always throw on error
   m_file.exceptions(std::ofstream::badbit);
@@ -171,6 +176,7 @@ inline DsvReader<Delimiter, NamedTuple>::DsvReader(
   } else {
     m_file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     // no reordering; assume ordering in the file is the same as in the tuple
+    m_num_columns = NamedTuple::N;
     for (std::size_t i = 0; i < m_tuple_to_column.size(); ++i) {
       m_tuple_to_column[i] = i;
     }
@@ -182,6 +188,16 @@ inline bool
 DsvReader<Delimiter, NamedTuple>::read(NamedTuple& record)
 {
   if (not read_line()) { return false; }
+  // check for consistent entries per-line
+  if (m_columns.size() < m_num_columns) {
+    throw std::runtime_error(
+      "Too few columns in line " + std::to_string(m_num_lines));
+  }
+  if (m_num_columns < m_columns.size()) {
+    throw std::runtime_error(
+      "Too many columns in line " + std::to_string(m_num_lines));
+  }
+  // convert to tuple
   typename NamedTuple::Tuple values;
   parse_record(values, std::make_index_sequence<NamedTuple::N>{});
   record = values;
@@ -197,35 +213,22 @@ DsvReader<Delimiter, NamedTuple>::read_line()
   constexpr std::ifstream::int_type end_of_line = '\n';
   constexpr std::ifstream::int_type end_of_file =
     std::ifstream::traits_type::eof();
-  constexpr std::size_t expected_columns = NamedTuple::N;
 
-  // read single line and split it into columns
-  std::size_t ncolumns = 0;
-  std::string column;
+  // read single line and directly split it into columns
+  m_columns.clear();
+  m_columns.push_back({}); // first column
   while (true) {
     auto c = m_file.get();
     if (c == end_of_file) {
       return false;
     } else if (c == end_of_line) {
-      // end-of-line terminates the last column
-      m_columns[ncolumns++] = column;
       break;
     } else if (c == end_of_column) {
-      m_columns[ncolumns++] = column;
-      // end-of-column token means there should be at aleast one more column
-      // and we can already check now for column count mismatches
-      if (expected_columns < (ncolumns + 1)) {
-        throw std::runtime_error(
-          "Too many columns in line " + std::to_string(m_num_lines));
-      }
-      column.clear();
+      // start the next column
+      m_columns.push_back({});
     } else {
-      column.push_back(c);
+      m_columns.back().push_back(c);
     }
-  }
-  if (ncolumns < expected_columns) {
-    throw std::runtime_error(
-      "Too few columns in line " + std::to_string(m_num_lines));
   }
   m_num_lines += 1;
   return true;
@@ -248,11 +251,16 @@ DsvReader<Delimiter, NamedTuple>::parse_header()
   for (std::size_t i = 0; i < m_columns.size(); ++i) {
     // find the position of the column in the tuple.
     auto it = std::find(names.begin(), names.end(), m_columns[i]);
-    if (it == names.end()) {
-      throw std::runtime_error("Unknown header column '" + m_columns[i] + "'");
+    if (it != names.end()) {
+      // establish mapping between column and tuple item position
+      m_tuple_to_column[std::distance(names.begin(), it)] = i;
+    } else {
+      // record non-tuple columns
+      m_extra_columns.push_back(i);
     }
-    m_tuple_to_column[std::distance(names.begin(), it)] = i;
   }
+  // fix number of columns for all future reads
+  m_num_columns = m_columns.size();
 }
 
 template<char Delimiter, typename NamedTuple>
