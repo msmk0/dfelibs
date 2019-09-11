@@ -11,6 +11,19 @@ static constexpr size_t kNRecords = 1024;
 
 BOOST_TEST_DONT_PRINT_LOG_VALUE(Record::Tuple)
 
+#define TEST_READER_RECORDS(reader) \
+  do { \
+    Record record; \
+    for (size_t i = 0; reader.read(record); ++i) { \
+      auto expected = make_record(i); \
+      BOOST_TEST( \
+        record.to_tuple() == expected.to_tuple(), \
+        "inconsistent record " << i << " expected=(" << expected << ") read=(" \
+                               << record << ")"); \
+      BOOST_TEST(record.THIS_IS_UNUSED == Record().THIS_IS_UNUSED); \
+    } \
+  } while (false)
+
 // full write/read chain tests
 
 BOOST_AUTO_TEST_CASE(csv_namedtuple_write_read)
@@ -27,17 +40,8 @@ BOOST_AUTO_TEST_CASE(csv_namedtuple_write_read)
   {
     dfe::CsvNamedTupleReader<Record> reader("test.csv");
 
-    Record record;
-    size_t n = 0;
-    while (reader.read(record)) {
-      BOOST_TEST(
-        record.to_tuple() == make_record(n).to_tuple(),
-        "inconsistent record " << n);
-      // this should remain untouched, i.e. at the default value
-      BOOST_TEST(record.THIS_IS_UNUSED == Record().THIS_IS_UNUSED);
-      n += 1;
-    }
-    BOOST_TEST(n == kNRecords);
+    TEST_READER_RECORDS(reader);
+    BOOST_TEST(reader.num_records() == kNRecords);
   }
 }
 
@@ -55,17 +59,8 @@ BOOST_AUTO_TEST_CASE(tsv_namedtuple_write_read)
   {
     dfe::TsvNamedTupleReader<Record> reader("test.tsv");
 
-    Record record;
-    size_t n = 0;
-    while (reader.read(record)) {
-      BOOST_TEST(
-        record.to_tuple() == make_record(n).to_tuple(),
-        "inconsistent record " << n);
-      // this should remain untouched, i.e. at the default value
-      BOOST_TEST(record.THIS_IS_UNUSED == Record().THIS_IS_UNUSED);
-      n += 1;
-    }
-    BOOST_TEST(n == kNRecords);
+    TEST_READER_RECORDS(reader);
+    BOOST_TEST(reader.num_records() == kNRecords);
   }
 }
 
