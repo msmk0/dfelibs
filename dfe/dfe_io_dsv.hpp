@@ -97,6 +97,13 @@ public:
   /// \returns false  if no more records are available
   bool read(NamedTuple& record);
 
+  /// Read the next record and any extra columns from the file.
+  ///
+  /// \returns true   if a record was successfully read
+  /// \returns false  if no more records are available
+  template<typename T>
+  bool read(NamedTuple& record, std::vector<T>& extra);
+
   /// Return the number of additional columns that are not part of the tuple.
   std::size_t num_extra_columns() const { return m_extra_columns.size(); }
   /// Return the number of records read so far.
@@ -202,6 +209,22 @@ DsvReader<Delimiter, NamedTuple>::read(NamedTuple& record)
   parse_record(values, std::make_index_sequence<NamedTuple::N>{});
   record = values;
   m_num_records += 1;
+  return true;
+}
+
+template<char Delimiter, typename NamedTuple>
+template<typename T>
+inline bool
+DsvReader<Delimiter, NamedTuple>::read(
+  NamedTuple& record, std::vector<T>& extra)
+{
+  if (not read(record)) { return false; }
+  extra.clear();
+  for (auto i : m_extra_columns) {
+    std::istringstream is(m_columns[i]);
+    extra.push_back({});
+    is >> extra.back();
+  }
   return true;
 }
 
