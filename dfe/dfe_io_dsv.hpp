@@ -70,11 +70,15 @@ private:
 
 /// Read records as delimiter-separated values from a text file.
 ///
-/// The reader is strict about its input format. Each row **must** contain
-/// exactly as many columns as there are values within the record. Every row
-/// **must** end with a single newline. The first row is **alway** interpreted
-/// as a header but can be skipped. If it is not skipped, the header names
-/// in each column **must** match exactly to the record member names.
+/// The reader is strict about its input format to avoid ambiguities. If header
+/// verification is disabled, the first line will be skipped and each line
+/// must contain exactly as many columns as there are tuple members in exactly
+/// the same order.
+/// If header verification is enabled, the first line is interpreted as the
+/// header. Names in the header must match exactly to the tuple members but
+/// can be in arbitrary order. The file can contain extra columns that are
+/// not tuple members. Each following row must have exactly the same number
+/// of columns as the header.
 template<char Delimiter, typename NamedTuple>
 class DsvReader {
 public:
