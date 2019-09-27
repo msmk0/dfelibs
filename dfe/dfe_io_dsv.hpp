@@ -70,15 +70,14 @@ private:
 
 /// Read records as delimiter-separated values from a text file.
 ///
-/// The reader is strict about its input format to avoid ambiguities. If header
-/// verification is disabled, the first line will be skipped and each line
-/// must contain exactly as many columns as there are tuple members in exactly
-/// the same order.
-/// If header verification is enabled, the first line is interpreted as the
-/// header. Names in the header must match exactly to the tuple members but
-/// can be in arbitrary order. The file can contain extra columns that are
-/// not tuple members. Each following row must have exactly the same number
-/// of columns as the header.
+/// The reader is strict about its input format to avoid ambiguities. If
+/// header verification is disabled, the first line will be skipped and each
+/// line must contain exactly as many columns as there are tuple members in
+/// exactly the same order. If header verification is enabled, the first line
+/// is interpreted as the header. Names in the header must match exactly to
+/// the tuple members but can be in arbitrary order. The file can contain
+/// extra columns that are not tuple members. Each following row must have
+/// exactly the same number of columns as the header.
 template<char Delimiter, typename NamedTuple>
 class DsvReader {
 public:
@@ -163,9 +162,10 @@ DsvWriter<Delimiter, NamedTuple>::write_line(
   // this is a bit like magic, here is whats going on:
   // the (<expr>, 0) expression evaluates <expr>, ignores its return value
   // and then returns an integer with value 0 by virtue of the comma operator
-  // (yes, ',' can also be an operator with a very weird but helpful function).
-  // The ... pack expansion creates this expression for each entry in the index
-  // pack I, effectively looping over the indices at compile time.
+  // (yes, ',' can also be an operator with a very weird but helpful
+  // function). The ... pack expansion creates this expression for each entry
+  // in the index pack I, effectively looping over the indices at compile
+  // time.
   using swallow = int[];
   (void)swallow{0, (m_file << std::get<I>(values)
                            << (((I + 1) < sizeof...(I)) ? Delimiter : '\n'),
@@ -266,7 +266,6 @@ inline void
 DsvReader<Delimiter, NamedTuple>::parse_header()
 {
   const auto& names = NamedTuple::names();
-
   // check that all columns are available
   for (const auto& name : names) {
     auto it = std::find(m_columns.begin(), m_columns.end(), name);
