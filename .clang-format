@@ -1,0 +1,23 @@
+---
+BasedOnStyle: Mozilla
+ColumnLimit: 80
+---
+Language: Cpp
+Standard: Cpp11
+AlignAfterOpenBracket: AlwaysBreak
+AlignEscapedNewlines: DontAlign
+AllowAllParametersOfDeclarationOnNextLine: true
+AllowShortBlocksOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
+AlwaysBreakAfterReturnType: TopLevelDefinitions
+AlwaysBreakTemplateDeclarations: true
+BinPackArguments: true
+BinPackParameters: true
+BreakBeforeBraces: WebKit
+Cpp11BracedListStyle: true
+FixNamespaceComments: true
+NamespaceIndentation: None
+PointerAlignment: Left
+SpacesInContainerLiterals: true
+---
