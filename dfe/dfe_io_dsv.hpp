@@ -119,6 +119,7 @@ private:
   void parse_record(TupleLike& record, std::index_sequence<I...>) const;
 
   std::ifstream m_file;
+  std::string m_line;
   std::vector<std::string> m_columns;
   std::size_t m_num_lines = 0;
   std::size_t m_num_records = 0;
@@ -177,16 +178,18 @@ DsvWriter<Delimiter, NamedTuple>::write_line(
 template<char Delimiter, typename NamedTuple>
 inline DsvReader<Delimiter, NamedTuple>::DsvReader(
   const std::string& path, bool verify_header)
+  : m_file(path, std::ios_base::binary | std::ios_base::in)
 {
-  // make our life easier. always throw on error
-  m_file.exceptions(std::ofstream::badbit);
-  m_file.open(path, std::ios_base::binary | std::ios_base::in);
+  if (not m_file.is_open() or m_file.fail()) {
+    throw std::runtime_error("Could not open file '" + path + "'");
+  }
+  if (not read_line()) {
+    throw std::runtime_error("Could not read header from '" + path + "'");
+  }
   if (verify_header) {
-    if (not read_line()) { throw std::runtime_error("Invalid file header"); };
     parse_header();
   } else {
-    m_file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    // no reordering; assume ordering in the file is the same as in the tuple
+    // assume row content is identical in content and order to the tuple
     m_num_columns = NamedTuple::N;
     for (std::size_t i = 0; i < m_tuple_to_column.size(); ++i) {
       m_tuple_to_column[i] = i;
@@ -236,28 +239,29 @@ template<char Delimiter, typename NamedTuple>
 inline bool
 DsvReader<Delimiter, NamedTuple>::read_line()
 {
-  constexpr std::ifstream::int_type end_of_column = Delimiter;
-  constexpr std::ifstream::int_type end_of_line = '\n';
-  constexpr std::ifstream::int_type end_of_file =
-    std::ifstream::traits_type::eof();
+  // read the next line and check for both end-of-file and errors
+  std::getline(m_file, m_line);
+  m_num_lines += 1;
+  if (m_file.eof()) { return false; }
+  if (m_file.fail()) {
+    throw std::runtime_error(
+      "Could not read line " + std::to_string(m_num_lines));
+  }
 
-  // read single line and directly split it into columns
+  // split the line into columns
   m_columns.clear();
-  m_columns.push_back({}); // first column
-  while (true) {
-    auto c = m_file.get();
-    if (c == end_of_file) {
-      return false;
-    } else if (c == end_of_line) {
+  for (std::string::size_type pos = 0; pos < m_line.size();) {
+    auto del = m_line.find_first_of(Delimiter, pos);
+    if (del == std::string::npos) {
+      // reached the end of the line; also determines the last column
+      m_columns.emplace_back(m_line, pos);
       break;
-    } else if (c == end_of_column) {
-      // start the next column
-      m_columns.push_back({});
     } else {
-      m_columns.back().push_back(c);
+      m_columns.emplace_back(m_line, pos, del - pos);
+      // start next column search after the delimiter
+      pos = del + 1;
     }
   }
-  m_num_lines += 1;
   return true;
 }
 
