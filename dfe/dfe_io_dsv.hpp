@@ -103,16 +103,30 @@ public:
   /// \param precision  Output floating point precision
   DsvWriter(
     const std::string& path,
-    int precision = std::numeric_limits<double>::max_digits10);
+    int precision = std::numeric_limits<double>::max_digits10)
+    : m_writer(colum_names(), path, precision)
+  {
+  }
 
   /// Append a record to the file.
-  void append(const NamedTuple& record);
+  void append(const NamedTuple& record)
+  {
+    append_impl(record.to_tuple(), std::make_index_sequence<NamedTuple::N>{});
+  }
 
 private:
   template<typename TupleLike, std::size_t... I>
-  void write_line(const TupleLike& values, std::index_sequence<I...>);
+  void append_impl(const TupleLike& values, std::index_sequence<I...>)
+  {
+    m_writer.append(std::get<I>(values)...);
+  }
+  static std::vector<std::string> colum_names()
+  {
+    std::array<std::string, NamedTuple::N> from_record = NamedTuple::names();
+    return {from_record.begin(), from_record.end()};
+  }
 
-  std::ofstream m_file;
+  UntypedDsvWriter<Delimiter> m_writer;
 };
 
 /// Read records as delimiter-separated values from a text file.
@@ -261,48 +275,6 @@ UntypedDsvWriter<Delimiter>::write(
     n += 1;
   }
   return n;
-}
-
-// implementation text writer
-
-template<char Delimiter, typename NamedTuple>
-inline DsvWriter<Delimiter, NamedTuple>::DsvWriter(
-  const std::string& path, int precision)
-{
-  // make our life easier. always throw on error
-  m_file.exceptions(std::ofstream::badbit | std::ofstream::failbit);
-  m_file.open(
-    path, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
-  // set output precision for floating point values
-  m_file.precision(precision);
-  // write column names as header
-  write_line(NamedTuple::names(), std::make_index_sequence<NamedTuple::N>{});
-}
-
-template<char Delimiter, typename NamedTuple>
-inline void
-DsvWriter<Delimiter, NamedTuple>::append(const NamedTuple& record)
-{
-  write_line(record.to_tuple(), std::make_index_sequence<NamedTuple::N>{});
-}
-
-template<char Delimiter, typename NamedTuple>
-template<typename TupleLike, std::size_t... I>
-inline void
-DsvWriter<Delimiter, NamedTuple>::write_line(
-  const TupleLike& values, std::index_sequence<I...>)
-{
-  // this is a bit like magic, here is whats going on:
-  // the (<expr>, 0) expression evaluates <expr>, ignores its return value
-  // and then returns an integer with value 0 by virtue of the comma operator
-  // (yes, ',' can also be an operator with a very weird but helpful
-  // function). The ... pack expansion creates this expression for each entry
-  // in the index pack I, effectively looping over the indices at compile
-  // time.
-  using swallow = int[];
-  (void)swallow{0, (m_file << std::get<I>(values)
-                           << (((I + 1) < sizeof...(I)) ? Delimiter : '\n'),
-                    0)...};
 }
 
 // implementation text reader
