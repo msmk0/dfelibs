@@ -313,15 +313,15 @@ DsvReader<Delimiter, NamedTuple>::parse_record(
 template<typename NamedTuple>
 using CsvNamedTupleWriter = io_dsv_impl::DsvWriter<',', NamedTuple>;
 
-/// Read records from a comma-separated file.
+/// Read tuple-like records from a comma-separated file.
 template<typename NamedTuple>
 using CsvNamedTupleReader = io_dsv_impl::DsvReader<',', NamedTuple>;
 
-/// Write records as a tab-separated values into a text file.
+/// Write tuple-like records as tab-separated values into a text file.
 template<typename NamedTuple>
 using TsvNamedTupleWriter = io_dsv_impl::DsvWriter<'\t', NamedTuple>;
 
-/// Read records from a tab-separated file.
+/// Read tuple-like records from a tab-separated file.
 template<typename NamedTuple>
 using TsvNamedTupleReader = io_dsv_impl::DsvReader<'\t', NamedTuple>;
 
