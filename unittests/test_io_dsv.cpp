@@ -78,6 +78,28 @@ BOOST_AUTO_TEST_CASE(tsv_namedtuple_write_read)
   }
 }
 
+BOOST_AUTO_TEST_CASE(untyped_tsv_write)
+{
+  // open writer with 4 columns
+  dfe::TsvWriter writer({"col0", "col1", "a", "z"}, "untyped.tsv");
+
+  std::vector<double> values = {0.1, 2.3, 4.2};
+
+  BOOST_CHECK_NO_THROW(writer.append(0.0, 1.0, 12u, "abc"));
+  BOOST_CHECK_NO_THROW(writer.append(1, 2, "xy", "by"));
+  // with vector unpacking
+  BOOST_CHECK_NO_THROW(writer.append(23u, values));
+  // with vector unpacking but too many entries
+  values.push_back(-2.0);
+  values.push_back(-34.2);
+  BOOST_CHECK_THROW(writer.append(23u, values), std::invalid_argument);
+  // not enough columns
+  BOOST_CHECK_THROW(writer.append(1.0, 2.0, 12u), std::invalid_argument);
+  // too many columns
+  BOOST_CHECK_THROW(
+    writer.append(1, 2, false, true, 123.2), std::invalid_argument);
+}
+
 // construct a path to an example data file
 std::string
 make_data_path(const char* filename)

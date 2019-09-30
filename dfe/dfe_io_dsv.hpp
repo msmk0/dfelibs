@@ -33,11 +33,58 @@
 #include <stdexcept>
 #include <string>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
 namespace dfe {
 namespace io_dsv_impl {
+
+/// Write arbitrary data as delimiter-separated values into a text file.
+template<char Delimiter>
+class UntypedDsvWriter {
+public:
+  UntypedDsvWriter() = delete;
+  UntypedDsvWriter(UntypedDsvWriter&&) = default;
+  UntypedDsvWriter(const UntypedDsvWriter&) = delete;
+  ~UntypedDsvWriter() = default;
+  UntypedDsvWriter& operator=(UntypedDsvWriter&&) = default;
+  UntypedDsvWriter& operator=(const UntypedDsvWriter&) = delete;
+
+  /// Create a file at the given path. Overwrites existing data.
+  ///
+  /// \param columns    Column names, fixes the number of columns for the file
+  /// \param path       Path to the output file
+  /// \param precision  Output floating point precision
+  UntypedDsvWriter(
+    const std::vector<std::string>& columns, const std::string& path,
+    int precision = std::numeric_limits<double>::max_digits10);
+
+  /// Append arguments as a new row to the file.
+  ///
+  /// Each argument corresponds to one column. The writter ensures that the
+  /// number of columns written match the number of columns that were specified
+  /// during construction.
+  ///
+  /// \note `std::vector` arguments are automatically unpacked and each entry
+  ///       is written as a separate column.
+  template<typename Arg0, typename... Args>
+  void append(Arg0&& arg0, Args&&... args);
+
+private:
+  // enable_if to prevent this overload to be used for std::vector<T> as well
+  template<typename T>
+  static std::enable_if_t<
+    std::is_arithmetic<std::decay_t<T>>::value or
+      std::is_convertible<T, std::string>::value,
+    unsigned>
+  write(T&& x, std::ostream& os);
+  template<typename T, typename Allocator>
+  static unsigned write(const std::vector<T, Allocator>& xs, std::ostream& os);
+
+  std::ofstream m_file;
+  std::size_t m_num_columns;
+};
 
 /// Write records as delimiter-separated values into a text file.
 template<char Delimiter, typename NamedTuple>
@@ -130,6 +177,91 @@ private:
   // column indices that do not map to a tuple item.
   std::vector<std::size_t> m_extra_columns;
 };
+
+// implementation untyped writer
+
+template<char Delimiter>
+inline UntypedDsvWriter<Delimiter>::UntypedDsvWriter(
+  const std::vector<std::string>& columns, const std::string& path,
+  int precision)
+  : m_file(
+      path, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc)
+  , m_num_columns(columns.size())
+{
+  if (not m_file.is_open() or m_file.fail()) {
+    throw std::runtime_error("Could not open file '" + path + "'");
+  }
+  m_file.precision(precision);
+  if (m_num_columns == 0) {
+    throw std::invalid_argument("No columns were specified");
+  }
+  // write column names as header row
+  append(columns);
+}
+
+template<char Delimiter>
+template<typename Arg0, typename... Args>
+inline void
+UntypedDsvWriter<Delimiter>::append(Arg0&& arg0, Args&&... args)
+{
+  // we can only check how many columns were written after they have been
+  // written. write to temporary first to prevent bad data on file.
+  std::stringstream line;
+  // ensure consistent formatting
+  line.precision(m_file.precision());
+  unsigned written_columns[] = {
+    // write the first item without a delimiter and store columns written
+    write(std::forward<Arg0>(arg0), line),
+    // for all other items, write the delimiter followed by the item itself
+    // (<expr1>, <expr2>) use the comma operator (yep, ',' in c++ is a weird
+    // but helpful operator) to execute both expression and return the return
+    // value of the last one, i.e. here thats the number of columns written.
+    // the ... pack expansion creates this expression for all arguments
+    (line << Delimiter, write(std::forward<Args>(args), line))...,
+  };
+  line << '\n';
+  // validate that the total number of written columns matches the specs.
+  unsigned total_columns = 0;
+  for (auto nc : written_columns) { total_columns += nc; }
+  if (total_columns < m_num_columns) {
+    throw std::invalid_argument("Not enough columns");
+  }
+  if (m_num_columns < total_columns) {
+    throw std::invalid_argument("Too many columns");
+  }
+  // write the line to disk and check that it actually happened
+  m_file << line.rdbuf();
+  if (not m_file.good()) {
+    throw std::runtime_error("Could not write data to file");
+  }
+}
+
+template<char Delimiter>
+template<typename T>
+inline std::enable_if_t<
+  std::is_arithmetic<std::decay_t<T>>::value or
+    std::is_convertible<T, std::string>::value,
+  unsigned>
+UntypedDsvWriter<Delimiter>::write(T&& x, std::ostream& os)
+{
+  os << x;
+  return 1u;
+}
+
+template<char Delimiter>
+template<typename T, typename Allocator>
+inline unsigned
+UntypedDsvWriter<Delimiter>::write(
+  const std::vector<T, Allocator>& xs, std::ostream& os)
+{
+  unsigned n = 0;
+  for (const auto& x : xs) {
+    if (0 < n) { os << Delimiter; }
+    os << x;
+    n += 1;
+  }
+  return n;
+}
 
 // implementation text writer
 
@@ -309,7 +441,13 @@ DsvReader<Delimiter, NamedTuple>::parse_record(
 
 } // namespace io_dsv_impl
 
-/// Write records as a comma-separated values into a text file.
+/// Write arbitrary data as comma-separated values into as text file.
+using CsvWriter = io_dsv_impl::UntypedDsvWriter<','>;
+
+/// Write arbitrary data as tab-separated values into as text file.
+using TsvWriter = io_dsv_impl::UntypedDsvWriter<'\t'>;
+
+/// Write tuple-like records as comma-separated values into a text file.
 template<typename NamedTuple>
 using CsvNamedTupleWriter = io_dsv_impl::DsvWriter<',', NamedTuple>;
 
