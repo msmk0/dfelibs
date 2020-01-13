@@ -165,8 +165,7 @@ The following libraries are archived and should probably not be used e.g.
 because they only provide limited functionality or better alternatives
 exist. But you never know and they might still be useful somewhere.
 
-Histogram
----------
+### Histogram
 
 **Note**: Consider using [Boost Histogram][boost_histogram] instead.
 
@@ -196,8 +195,7 @@ h1.fill(0.25, 4.0, 65);      // axis 1 overflow
 h1.fill(2.25, 1.0, 65);      // fails, due to axis 0 overflow
 ```
 
-Small vector
-------------
+### Small vector
 
 **Note**: Consider using `small_vector` from [Boost Containers][boost_histogram]
 instead.
