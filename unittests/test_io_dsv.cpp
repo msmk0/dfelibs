@@ -30,7 +30,7 @@ BOOST_AUTO_TEST_CASE(csv_namedtuple_write_read)
 {
   // write some data
   {
-    dfe::CsvNamedTupleWriter<Record> writer("test.csv");
+    dfe::NamedTupleCsvWriter<Record> writer("test.csv");
 
     for (size_t i = 0; i < kNRecords; ++i) {
       BOOST_CHECK_NO_THROW(writer.append(make_record(i)));
@@ -38,14 +38,14 @@ BOOST_AUTO_TEST_CASE(csv_namedtuple_write_read)
   }
   // read the data back
   {
-    dfe::CsvNamedTupleReader<Record> reader("test.csv");
+    dfe::NamedTupleCsvReader<Record> reader("test.csv");
 
     TEST_READER_RECORDS(reader);
     BOOST_TEST(reader.num_records() == kNRecords);
   }
   // read the data back w/o verifying the header
   {
-    dfe::CsvNamedTupleReader<Record> reader("test.csv", false);
+    dfe::NamedTupleCsvReader<Record> reader("test.csv", false);
 
     TEST_READER_RECORDS(reader);
     BOOST_TEST(reader.num_records() == kNRecords);
@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(tsv_namedtuple_write_read)
 {
   // write some data
   {
-    dfe::TsvNamedTupleWriter<Record> writer("test.tsv");
+    dfe::NamedTupleTsvWriter<Record> writer("test.tsv");
 
     for (size_t i = 0; i < kNRecords; ++i) {
       BOOST_CHECK_NO_THROW(writer.append(make_record(i)));
@@ -64,21 +64,21 @@ BOOST_AUTO_TEST_CASE(tsv_namedtuple_write_read)
   }
   // read the data back
   {
-    dfe::TsvNamedTupleReader<Record> reader("test.tsv");
+    dfe::NamedTupleTsvReader<Record> reader("test.tsv");
 
     TEST_READER_RECORDS(reader);
     BOOST_TEST(reader.num_records() == kNRecords);
   }
   // read the data back w/o verifying the header
   {
-    dfe::TsvNamedTupleReader<Record> reader("test.tsv", false);
+    dfe::NamedTupleTsvReader<Record> reader("test.tsv", false);
 
     TEST_READER_RECORDS(reader);
     BOOST_TEST(reader.num_records() == kNRecords);
   }
 }
 
-BOOST_AUTO_TEST_CASE(untyped_tsv_write)
+BOOST_AUTO_TEST_CASE(tsv_untyped_write)
 {
   // open writer with 4 columns
   dfe::TsvWriter writer({"col0", "col1", "a", "z"}, "untyped.tsv");
@@ -119,7 +119,7 @@ constexpr size_t kNOnfile = 32;
 BOOST_AUTO_TEST_CASE(csv_namedtuple_read_reordered)
 {
   std::string path = make_data_path("reordered_columns.csv");
-  dfe::CsvNamedTupleReader<Record> reader(path);
+  dfe::NamedTupleCsvReader<Record> reader(path);
 
   TEST_READER_RECORDS(reader);
   BOOST_TEST(reader.num_records() == kNOnfile);
@@ -128,7 +128,7 @@ BOOST_AUTO_TEST_CASE(csv_namedtuple_read_reordered)
 BOOST_AUTO_TEST_CASE(tsv_namedtuple_read_reordered)
 {
   std::string path = make_data_path("reordered_columns.tsv");
-  dfe::TsvNamedTupleReader<Record> reader(path);
+  dfe::NamedTupleTsvReader<Record> reader(path);
 
   TEST_READER_RECORDS(reader);
   BOOST_TEST(reader.num_records() == kNOnfile);
@@ -154,8 +154,7 @@ BOOST_AUTO_TEST_CASE(tsv_namedtuple_read_reordered)
 
 BOOST_AUTO_TEST_CASE(csv_namedtuple_read_extra_columns)
 {
-  std::string path = make_data_path("extra_columns.csv");
-  dfe::CsvNamedTupleReader<Record> reader(path);
+  dfe::NamedTupleCsvReader<Record> reader(make_data_path("extra_columns.csv"));
 
   TEST_READER_RECORDS_EXTRA(reader, 3);
   BOOST_TEST(reader.num_records() == kNOnfile);
@@ -164,8 +163,7 @@ BOOST_AUTO_TEST_CASE(csv_namedtuple_read_extra_columns)
 
 BOOST_AUTO_TEST_CASE(tsv_namedtuple_read_extra_columns)
 {
-  std::string path = make_data_path("extra_columns.tsv");
-  dfe::TsvNamedTupleReader<Record> reader(path);
+  dfe::NamedTupleTsvReader<Record> reader(make_data_path("extra_columns.tsv"));
 
   TEST_READER_RECORDS_EXTRA(reader, 3);
   BOOST_TEST(reader.num_records() == kNOnfile);
@@ -176,7 +174,7 @@ BOOST_AUTO_TEST_CASE(tsv_namedtuple_read_extra_columns)
 
 BOOST_AUTO_TEST_CASE(tsv_namedtuple_read_bad_files)
 {
-  using Reader = dfe::CsvNamedTupleReader<Record>;
+  using Reader = dfe::NamedTupleCsvReader<Record>;
 
   Record r;
   BOOST_CHECK_THROW(Reader("does/not/exist.tsv"), std::runtime_error);
