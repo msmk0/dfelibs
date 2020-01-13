@@ -67,35 +67,6 @@ map.emplace("xyz", "something"); // constructs element in-place
 map.contains("abc"); // returns false
 ```
 
-Histogram
----------
-
-Compose a multi-dimensional histogram with configurable axis types
-
-```cpp
-#include <dfe/dfe_histogram.hpp>
-
-using H3 =
-  dfe::Histogram<float,
-    dfe::UniformAxis<float>,
-    dfe::OverflowAxis<float>,
-    dfe::VariableAxis<float>>;
-
-// axis 0: 16 bins of uniform size, no under/overflow bins
-// axis 1: 8 bins of uniform size, additional under/overflow bins
-// axis 2: 4 bins of variable size, no under/overflow bins
-H3 h({0.0, 1.0, 16}, {-2.0, 2.0, 8}, {1.0, 10.0, 20.0, 30.0, 100.0});
-```
-
-and fill it with weighted or unweighted data
-
-```cpp
-h1.fill(0.5, 0.0, 25);       // weight = 1
-h1.fill(0.25, 1.0, 65, 0.3); // weight = 0.3
-h1.fill(0.25, 4.0, 65);      // axis 1 overflow
-h1.fill(2.25, 1.0, 65);      // fails, due to axis 0 overflow
-```
-
 Namedtuple
 ----------
 
@@ -115,14 +86,14 @@ struct Record {
 and write it to disk in multiple formats:
 
 ```cpp
-#include <dfe/dfe_io_dsv.hpp> // delimiter-separated values, i.e. csv or tsv
+#include <dfe/dfe_io_dsv.hpp>
 #include <dfe/dfe_io_numpy.hpp>
 #include <dfe/dfe_io_root.hpp> // requires ROOT
 
-dfe::CsvNamedTupleWriter<Record> csv("records.csv"); // or
-dfe::TsvNamedTupleWriter<Record> tsv("records.tsv"); // or
-dfe::NpyNamedTupleWriter<Record> npy("records.npy"); // or
-dfe::RootNamedTupleWriter<Record> root("records.root", "treename");
+dfe::NamedTupleCsvWriter<Record> csv("records.csv"); // or
+dfe::NamedTupleTsvWriter<Record> tsv("records.tsv"); // or
+dfe::NamedTupleNumpyWriter<Record> npy("records.npy"); // or
+dfe::NamedTupleRootWriter<Record> root("records.root", "treename");
 
 csv.append(Record{1, 1.4, -2}); // same call for other writers
 ```
@@ -146,8 +117,8 @@ Data stored in one of the delimiter-based formats or as a ROOT tree can also be
 read back in:
 
 ```cpp
-dfe::TsvNamedTupleReader<Record> tsv("records.tsv");
-dfe::RootNamedTupleReader<Record> root("records.root", "treename");
+dfe::NamedTupleTsvReader<Record> tsv("records.tsv");
+dfe::NamedTupleRootReader<Record> root("records.root", "treename");
 
 Record data;
 tsv.read(data); // same call for other readers
@@ -187,8 +158,49 @@ or using the coefficients directly for fixed order polynomials:
 float y = dfe::polynomial_val(0.5f, {0.25f, 1.0f, 0.75f});
 ```
 
+Archived libraries
+------------------
+
+The following libraries are archived and should probably not be used e.g.
+because they only provide limited functionality or better alternatives
+exist. But you never know and they might still be useful somewhere.
+
+Histogram
+---------
+
+**Note**: Consider using [Boost Histogram][boost_histogram] instead.
+
+Compose a multi-dimensional histogram with configurable axis types
+
+```cpp
+#include <dfe/dfe_histogram.hpp>
+
+using H3 =
+  dfe::Histogram<float,
+    dfe::UniformAxis<float>,
+    dfe::OverflowAxis<float>,
+    dfe::VariableAxis<float>>;
+
+// axis 0: 16 bins of uniform size, no under/overflow bins
+// axis 1: 8 bins of uniform size, additional under/overflow bins
+// axis 2: 4 bins of variable size, no under/overflow bins
+H3 h({0.0, 1.0, 16}, {-2.0, 2.0, 8}, {1.0, 10.0, 20.0, 30.0, 100.0});
+```
+
+and fill it with weighted or unweighted data
+
+```cpp
+h1.fill(0.5, 0.0, 25);       // weight = 1
+h1.fill(0.25, 1.0, 65, 0.3); // weight = 0.3
+h1.fill(0.25, 4.0, 65);      // axis 1 overflow
+h1.fill(2.25, 1.0, 65);      // fails, due to axis 0 overflow
+```
+
 Small vector
 ------------
+
+**Note**: Consider using `small_vector` from [Boost Containers][boost_histogram]
+instead.
 
 A vector-like container of elements than can store a fixed number of
 elements directly in the container without allocating additional memory.
@@ -202,7 +214,8 @@ vec.emplace_back(4.2); // stored directly in the container
 vec.emplace_back(5.0); // memory is allocated and data moved
 ```
 
-
+[boost_histogram]: https://www.boost.org/doc/libs/1_72_0/libs/histogram/doc/html/index.html
+[boost_smallvector]: https://www.boost.org/doc/libs/1_72_0/doc/html/container/non_standard_containers.html#container.non_standard_containers.small_vector
 [cmake]: https://www.cmake.org
 [mit_license]: https://opensource.org/licenses/MIT
 [npy]: https://docs.scipy.org/doc/numpy/neps/npy-format.html
