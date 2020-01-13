@@ -5,7 +5,7 @@
 
 #include <cstdint>
 
-#include <dfe/dfe_namedtuple.hpp>
+#include "dfe/dfe_namedtuple.hpp"
 
 struct Record {
   int16_t x = 0;

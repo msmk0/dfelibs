@@ -4,7 +4,7 @@
 #include <boost/test/unit_test.hpp>
 #include <iostream>
 
-#include <dfe/dfe_histogram.hpp>
+#include "dfe/dfe_histogram.hpp"
 
 // storage tests
 

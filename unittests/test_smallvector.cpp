@@ -6,7 +6,7 @@
 #include <iterator>
 #include <string>
 
-#include <dfe/dfe_smallvector.hpp>
+#include "dfe/dfe_smallvector.hpp"
 
 BOOST_AUTO_TEST_CASE(smallvector_int)
 {
@@ -41,7 +41,9 @@ BOOST_AUTO_TEST_CASE(smallvector_int_emplace)
 
     BOOST_TEST(*at_front.emplace(at_front.begin(), x) == x);
     BOOST_TEST(at_back.emplace_back(x) == x);
-    for (int j = 0; j < (i + 1); ++j) { BOOST_TEST(at_front[j] == at_back[i - j]); }
+    for (int j = 0; j < (i + 1); ++j) {
+      BOOST_TEST(at_front[j] == at_back[i - j]);
+    }
   }
 }
 

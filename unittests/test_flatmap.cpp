@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <string>
 
-#include <dfe/dfe_flat.hpp>
+#include "dfe/dfe_flat.hpp"
 
 BOOST_AUTO_TEST_CASE(flatmap_int_int)
 {

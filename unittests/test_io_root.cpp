@@ -5,8 +5,8 @@
 
 #include <cstdint>
 
-#include <dfe/dfe_io_root.hpp>
-#include <dfe/dfe_namedtuple.hpp>
+#include "dfe/dfe_io_root.hpp"
+#include "dfe/dfe_namedtuple.hpp"
 
 static constexpr size_t kNRecords = 4096;
 

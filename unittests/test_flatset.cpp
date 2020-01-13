@@ -3,7 +3,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <dfe/dfe_flat.hpp>
+#include "dfe/dfe_flat.hpp"
 
 using dfe::FlatSet;
 
@@ -56,18 +56,13 @@ struct Thing {
   float value;
 };
 struct ThingComparator {
-  bool operator()(const Thing& a, const Thing& b) {
-    return a.index < b.index;
-  }
-  bool operator()(int aindex, const Thing& b) {
-    return aindex < b.index;
-  }
-  bool operator()(const Thing& a, int bindex) {
-    return a.index < bindex;
-  }
+  bool operator()(const Thing& a, const Thing& b) { return a.index < b.index; }
+  bool operator()(int aindex, const Thing& b) { return aindex < b.index; }
+  bool operator()(const Thing& a, int bindex) { return a.index < bindex; }
 };
 
-BOOST_AUTO_TEST_CASE(flatset_custom_compare) {
+BOOST_AUTO_TEST_CASE(flatset_custom_compare)
+{
   FlatSet<Thing, ThingComparator> set;
 
   set.insert_or_assign({12, 0.25});
