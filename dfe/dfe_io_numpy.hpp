@@ -40,33 +40,37 @@ namespace dfe {
 /// https://docs.scipy.org/doc/numpy/reference/generated/numpy.lib.format.html
 /// for an explanation of the file format.
 template<typename NamedTuple>
-class NpyNamedTupleWriter {
+class NamedTupleNumpyWriter {
 public:
-  NpyNamedTupleWriter() = delete;
-  NpyNamedTupleWriter(const NpyNamedTupleWriter&) = delete;
-  NpyNamedTupleWriter(NpyNamedTupleWriter&&) = default;
-  ~NpyNamedTupleWriter();
-  NpyNamedTupleWriter& operator=(const NpyNamedTupleWriter&) = delete;
-  NpyNamedTupleWriter& operator=(NpyNamedTupleWriter&&) = default;
+  NamedTupleNumpyWriter() = delete;
+  NamedTupleNumpyWriter(const NamedTupleNumpyWriter&) = delete;
+  NamedTupleNumpyWriter(NamedTupleNumpyWriter&&) = default;
+  ~NamedTupleNumpyWriter();
+  NamedTupleNumpyWriter& operator=(const NamedTupleNumpyWriter&) = delete;
+  NamedTupleNumpyWriter& operator=(NamedTupleNumpyWriter&&) = default;
 
   /// Create a npy file at the given path. Overwrites existing data.
-  NpyNamedTupleWriter(const std::string& path);
+  NamedTupleNumpyWriter(const std::string& path);
 
   /// Append a record to the end of the file.
   void append(const NamedTuple& record);
 
 private:
-  void write_header(std::size_t num_tuples);
-  template<typename TupleLike, std::size_t... I>
-  void write_record(const TupleLike& values, std::index_sequence<I...>);
+  // the equivalent std::tuple-like type
+  using Tuple = typename NamedTuple::Tuple;
 
   std::ofstream m_file;
   std::size_t m_fixed_header_length;
   std::size_t m_num_tuples;
+
+  void write_header(std::size_t num_tuples);
+  template<std::size_t... I>
+  void write_record(const NamedTuple& record, std::index_sequence<I...>);
+  template<typename T>
+  void write_bytes(const T* ptr);
 };
 
 // implementation helpers
-
 namespace io_npy_impl {
 
 template<typename T>
@@ -119,14 +123,14 @@ dtype_endianness_modifier()
   return is_little_endian ? '<' : '>';
 }
 
-template<typename T>
+template<typename NamedTuple>
 inline std::string
-dtypes_description(const T& t)
+dtypes_description(const NamedTuple& nt)
 {
   std::string descr;
-  std::size_t n = T::N;
-  auto names = t.names();
-  auto codes = dtypes_codes(t.to_tuple());
+  std::size_t n = std::tuple_size<typename NamedTuple::Tuple>::value;
+  auto names = nt.names();
+  auto codes = dtypes_codes(nt.tuple());
   auto endianness_modifier = dtype_endianness_modifier();
   descr += '[';
   for (decltype(n) i = 0; i < n; ++i) {
@@ -147,7 +151,7 @@ dtypes_description(const T& t)
 // implementation
 
 template<typename NamedTuple>
-inline NpyNamedTupleWriter<NamedTuple>::NpyNamedTupleWriter(
+inline NamedTupleNumpyWriter<NamedTuple>::NamedTupleNumpyWriter(
   const std::string& path)
   : m_fixed_header_length(0)
   , m_num_tuples(0)
@@ -164,7 +168,7 @@ inline NpyNamedTupleWriter<NamedTuple>::NpyNamedTupleWriter(
 }
 
 template<typename NamedTuple>
-inline NpyNamedTupleWriter<NamedTuple>::~NpyNamedTupleWriter()
+inline NamedTupleNumpyWriter<NamedTuple>::~NamedTupleNumpyWriter()
 {
   if (!m_file.is_open()) { return; }
   write_header(m_num_tuples);
@@ -173,31 +177,33 @@ inline NpyNamedTupleWriter<NamedTuple>::~NpyNamedTupleWriter()
 
 template<typename NamedTuple>
 inline void
-NpyNamedTupleWriter<NamedTuple>::append(const NamedTuple& record)
+NamedTupleNumpyWriter<NamedTuple>::append(const NamedTuple& record)
 {
-  write_record(record.to_tuple(), std::make_index_sequence<NamedTuple::N>{});
+  write_record(
+    record, std::make_index_sequence<std::tuple_size<Tuple>::value>{});
   m_num_tuples += 1;
 }
 
 template<typename NamedTuple>
 inline void
-NpyNamedTupleWriter<NamedTuple>::write_header(std::size_t num_tuples)
+NamedTupleNumpyWriter<NamedTuple>::write_header(std::size_t num_tuples)
 {
   std::string header;
   // magic
   header += "\x93NUMPY";
-  // fixed version number (major, minor)
+  // fixed version number (major, minor), 1byte unsigned each
   header += static_cast<char>(0x1);
   header += static_cast<char>(0x0);
-  // placeholder value for the header length (2byte little end. unsigned)
+  // placeholder value for the header length, 2byte little endian unsigned
   header += static_cast<char>(0xAF);
   header += static_cast<char>(0xFE);
   // python dict w/ data type and size information
-  header += '{';
-  header += "'descr': " + io_npy_impl::dtypes_description(NamedTuple()) + ", ";
-  header += "'fortran_order': False, ";
-  header += "'shape': (" + std::to_string(num_tuples) + ",), ";
-  header += '}';
+  header += "{'descr': ";
+  header += io_npy_impl::dtypes_description(NamedTuple());
+  header += ", 'fortran_order': False";
+  header += ", 'shape': (";
+  header += std::to_string(num_tuples);
+  header += ",)}";
   // padd w/ spaces for 16 byte alignment of the whole header
   while (((header.size() + 1) % 16) != 0) { header += ' '; }
   // the initial header fixes the available header size. updated headers
@@ -218,17 +224,23 @@ NpyNamedTupleWriter<NamedTuple>::write_header(std::size_t num_tuples)
 }
 
 template<typename NamedTuple>
-template<typename TupleLike, std::size_t... I>
+template<std::size_t... I>
 inline void
-NpyNamedTupleWriter<NamedTuple>::write_record(
-  const TupleLike& values, std::index_sequence<I...>)
+NamedTupleNumpyWriter<NamedTuple>::write_record(
+  const NamedTuple& record, std::index_sequence<I...>)
 {
-  // see write_line implementation in text writer for explanation
-  using swallow = int[];
-  (void)swallow{0, (void(m_file.write(
-                      reinterpret_cast<const char*>(&std::get<I>(values)),
-                      sizeof(typename std::tuple_element<I, TupleLike>::type))),
-                    0)...};
+  using std::get;
+
+  // see namedtuple_impl::print_tuple for explanation
+  (void)(int[]){0, (write_bytes(&get<I>(record)), 0)...};
+}
+
+template<typename NamedTuple>
+template<typename T>
+inline void
+NamedTupleNumpyWriter<NamedTuple>::write_bytes(const T* ptr)
+{
+  m_file.write(reinterpret_cast<const char*>(ptr), sizeof(T));
 }
 
 } // namespace dfe
