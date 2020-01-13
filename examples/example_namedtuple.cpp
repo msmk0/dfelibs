@@ -27,13 +27,13 @@ int
 main(int argc, char* argv[])
 {
   // text writers
-  dfe::CsvNamedTupleWriter<Data> csv("test.csv");
-  dfe::TsvNamedTupleWriter<Data> tsv("test.tsv");
+  dfe::NamedTupleCsvWriter<Data> csv("test.csv");
+  dfe::NamedTupleTsvWriter<Data> tsv("test.tsv");
   // numpy writer
-  dfe::NpyNamedTupleWriter<Data> npy("test.npy");
+  dfe::NamedTupleNumpyWriter<Data> npy("test.npy");
 #ifdef DFE_USE_IO_ROOT
   // (optional) ROOT writer
-  dfe::RootNamedTupleWriter<Data> roo("test.root", "records");
+  dfe::NamedTupleRootWriter<Data> roo("test.root", "records");
 #endif
 
   // random data generators
