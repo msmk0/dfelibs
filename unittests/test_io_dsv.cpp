@@ -15,7 +15,7 @@ BOOST_TEST_DONT_PRINT_LOG_VALUE(Record::Tuple)
     for (size_t i = 0; reader.read(record); ++i) { \
       auto expected = make_record(i); \
       BOOST_TEST( \
-        record.to_tuple() == expected.to_tuple(), \
+        record.tuple() == expected.tuple(), \
         "inconsistent record " << i << " expected=(" << expected << ") read=(" \
                                << record << ")"); \
       BOOST_TEST(record.THIS_IS_UNUSED == Record().THIS_IS_UNUSED); \
@@ -143,7 +143,7 @@ BOOST_AUTO_TEST_CASE(tsv_namedtuple_read_reordered)
     for (size_t i = 0; reader.read(record, extra); ++i) { \
       auto expected = make_record(i); \
       BOOST_TEST( \
-        record.to_tuple() == expected.to_tuple(), \
+        record.tuple() == expected.tuple(), \
         "inconsistent record " << i << " expected=(" << expected << ") read=(" \
                                << record << ")"); \
       BOOST_TEST(record.THIS_IS_UNUSED == Record().THIS_IS_UNUSED); \

@@ -111,9 +111,9 @@ BOOST_AUTO_TEST_CASE(root_namedtuple_write_read)
     while (reader.read(record)) {
       auto expected = make_record(n);
       BOOST_TEST(
-        record.to_tuple() == expected.to_tuple(),
-        "inconsistent record " << n << "\nseen: " << record
-                               << "\nexpected: " << expected);
+        record.tuple() == expected.tuple(), "inconsistent record "
+                                              << n << "\nseen: " << record
+                                              << "\nexpected: " << expected);
       n += 1;
     }
     BOOST_TEST(n == kNRecords);
