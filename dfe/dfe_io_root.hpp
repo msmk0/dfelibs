@@ -36,21 +36,21 @@
 
 namespace dfe {
 
-/// Write records in a ROOT TTree.
+/// Write records into a ROOT TTree.
 template<typename NamedTuple>
-class RootNamedTupleWriter {
+class NamedTupleRootWriter {
 public:
-  RootNamedTupleWriter() = delete;
-  RootNamedTupleWriter(const RootNamedTupleWriter&) = delete;
-  RootNamedTupleWriter(RootNamedTupleWriter&&) = delete;
-  RootNamedTupleWriter& operator=(const RootNamedTupleWriter&) = delete;
-  RootNamedTupleWriter& operator=(RootNamedTupleWriter&&) = delete;
+  NamedTupleRootWriter() = delete;
+  NamedTupleRootWriter(const NamedTupleRootWriter&) = delete;
+  NamedTupleRootWriter(NamedTupleRootWriter&&) = delete;
+  NamedTupleRootWriter& operator=(const NamedTupleRootWriter&) = delete;
+  NamedTupleRootWriter& operator=(NamedTupleRootWriter&&) = delete;
 
   /// Create a file at the given path. Overwrites existing data.
   ///
   /// \param path       Path to the output file
   /// \param tree_name  Name of the output tree within the file
-  RootNamedTupleWriter(const std::string& path, const std::string& tree_name);
+  NamedTupleRootWriter(const std::string& path, const std::string& tree_name);
   /// Create a tree in a ROOT directory. Overwrites existing data.
   ///
   /// \param dir        Output directory for the tree
@@ -58,37 +58,40 @@ public:
   ///
   /// When the writer is created with an existing ROOT directory, the user
   /// is responsible for ensuring the underlying file is closed.
-  RootNamedTupleWriter(TDirectory* dir, const std::string& tree_name);
+  NamedTupleRootWriter(TDirectory* dir, const std::string& tree_name);
   /// Write the tree and close the owned file.
-  ~RootNamedTupleWriter();
+  ~NamedTupleRootWriter();
 
   /// Append a record to the file.
   void append(const NamedTuple& record);
 
 private:
-  template<std::size_t... I>
-  void setup_branches(std::index_sequence<I...>);
+  // the equivalent std::tuple-like type
+  using Tuple = typename NamedTuple::Tuple;
 
   TFile* m_file;
   TTree* m_tree;
-  typename NamedTuple::Tuple m_data;
+  Tuple m_data;
+
+  template<std::size_t... I>
+  void setup_branches(std::index_sequence<I...>);
 };
 
 /// Read records from a ROOT TTree.
 template<typename NamedTuple>
-class RootNamedTupleReader {
+class NamedTupleRootReader {
 public:
-  RootNamedTupleReader() = delete;
-  RootNamedTupleReader(const RootNamedTupleReader&) = delete;
-  RootNamedTupleReader(RootNamedTupleReader&&) = delete;
-  RootNamedTupleReader& operator=(const RootNamedTupleReader&) = delete;
-  RootNamedTupleReader& operator=(RootNamedTupleReader&&) = delete;
+  NamedTupleRootReader() = delete;
+  NamedTupleRootReader(const NamedTupleRootReader&) = delete;
+  NamedTupleRootReader(NamedTupleRootReader&&) = delete;
+  NamedTupleRootReader& operator=(const NamedTupleRootReader&) = delete;
+  NamedTupleRootReader& operator=(NamedTupleRootReader&&) = delete;
 
   /// Open a file at the given path.
   ///
   /// \param path       Path to the input file
   /// \param tree_name  Name of the input tree within the file
-  RootNamedTupleReader(const std::string& path, const std::string& tree_name);
+  NamedTupleRootReader(const std::string& path, const std::string& tree_name);
   /// Open a tree from a ROOT directory.
   ///
   /// \param dir        Input directory for the tree
@@ -96,9 +99,9 @@ public:
   ///
   /// When the reader is created with an existing ROOT directory, the user
   /// is responsible for ensuring the underlying file is closed.
-  RootNamedTupleReader(TDirectory* dir, const std::string& tree_name);
+  NamedTupleRootReader(TDirectory* dir, const std::string& tree_name);
   /// Write the tree and close the owned file.
-  ~RootNamedTupleReader();
+  ~NamedTupleRootReader();
 
   /// Read the next record from the file.
   ///
@@ -107,19 +110,22 @@ public:
   bool read(NamedTuple& record);
 
 private:
-  template<std::size_t... I>
-  void setup_branches(std::index_sequence<I...>);
+  // the equivalent std::tuple-like type
+  using Tuple = typename NamedTuple::Tuple;
 
   TFile* m_file;
   TTree* m_tree;
   int64_t m_next;
-  typename NamedTuple::Tuple m_data;
+  Tuple m_data;
+
+  template<std::size_t... I>
+  void setup_branches(std::index_sequence<I...>);
 };
 
 // implementation writer
 
 template<typename NamedTuple>
-inline RootNamedTupleWriter<NamedTuple>::RootNamedTupleWriter(
+inline NamedTupleRootWriter<NamedTuple>::NamedTupleRootWriter(
   const std::string& path, const std::string& tree_name)
   : m_file(new TFile(path.c_str(), "RECREATE"))
   , m_tree(new TTree(tree_name.c_str(), "", 99, m_file))
@@ -127,22 +133,22 @@ inline RootNamedTupleWriter<NamedTuple>::RootNamedTupleWriter(
   if (not m_file) { throw std::runtime_error("Could not create file"); }
   if (not m_file->IsOpen()) { throw std::runtime_error("Could not open file"); }
   if (not m_tree) { throw std::runtime_error("Could not create tree"); }
-  setup_branches(std::make_index_sequence<NamedTuple::N>());
+  setup_branches(std::make_index_sequence<std::tuple_size<Tuple>::value>());
 }
 
 template<typename NamedTuple>
-inline RootNamedTupleWriter<NamedTuple>::RootNamedTupleWriter(
+inline NamedTupleRootWriter<NamedTuple>::NamedTupleRootWriter(
   TDirectory* dir, const std::string& tree_name)
   : m_file(nullptr) // no file since it is not owned by the writer
   , m_tree(new TTree(tree_name.c_str(), "", 99, dir))
 {
   if (not dir) { throw std::runtime_error("Invalid output directory given"); }
   if (not m_tree) { throw std::runtime_error("Could not create tree"); }
-  setup_branches(std::make_index_sequence<NamedTuple::N>());
+  setup_branches(std::make_index_sequence<std::tuple_size<Tuple>::value>());
 }
 
 namespace namedtuple_root_impl {
-namespace {
+
 // see: https://cpppatterns.com/patterns/class-template-sfinae.html
 template<typename T, typename Enable = void>
 struct TypeCode;
@@ -188,22 +194,22 @@ template<typename T>
 struct TypeCode<T, typename std::enable_if_t<is_integer_with_size_v<T, 8>>>
   : TypeCodeIntImpl<T, 'l', 'L'> {
 };
-} // namespace
+
 } // namespace namedtuple_root_impl
 
 template<typename NamedTuple>
 template<std::size_t... I>
 inline void
-RootNamedTupleWriter<NamedTuple>::setup_branches(std::index_sequence<I...>)
+NamedTupleRootWriter<NamedTuple>::setup_branches(std::index_sequence<I...>)
 {
-  static_assert(sizeof...(I) == NamedTuple::N, "Something is very wrong");
+  static_assert(
+    sizeof...(I) == std::tuple_size<Tuple>::value, "Something is very wrong");
 
   // construct leaf names w/ type info
   std::array<std::string, sizeof...(I)> names = NamedTuple::names();
   std::array<std::string, sizeof...(I)> leafs = {
     (names[I] + '/' +
-     namedtuple_root_impl::TypeCode<
-       std::tuple_element_t<I, typename NamedTuple::Tuple>>::value)...};
+     namedtuple_root_impl::TypeCode<std::tuple_element_t<I, Tuple>>::value)...};
   // construct branches
   // NOTE 2019-05-13 msmk:
   // the documentation suggests that ROOT can figure out the branch types on
@@ -214,7 +220,7 @@ RootNamedTupleWriter<NamedTuple>::setup_branches(std::index_sequence<I...>)
 }
 
 template<typename NamedTuple>
-inline RootNamedTupleWriter<NamedTuple>::~RootNamedTupleWriter()
+inline NamedTupleRootWriter<NamedTuple>::~NamedTupleRootWriter()
 {
   // alway overwrite old data
   if (m_tree) { m_tree->Write(nullptr, TObject::kOverwrite); }
@@ -227,9 +233,9 @@ inline RootNamedTupleWriter<NamedTuple>::~RootNamedTupleWriter()
 
 template<typename NamedTuple>
 inline void
-RootNamedTupleWriter<NamedTuple>::append(const NamedTuple& record)
+NamedTupleRootWriter<NamedTuple>::append(const NamedTuple& record)
 {
-  m_data = record.to_tuple();
+  m_data = record;
   if (m_tree->Fill() == -1) {
     throw std::runtime_error("Could not fill an entry");
   }
@@ -238,7 +244,7 @@ RootNamedTupleWriter<NamedTuple>::append(const NamedTuple& record)
 // implementation reader
 
 template<typename NamedTuple>
-inline RootNamedTupleReader<NamedTuple>::RootNamedTupleReader(
+inline NamedTupleRootReader<NamedTuple>::NamedTupleRootReader(
   const std::string& path, const std::string& tree_name)
   : m_file(new TFile(path.c_str(), "READ"))
   , m_tree(nullptr)
@@ -248,11 +254,11 @@ inline RootNamedTupleReader<NamedTuple>::RootNamedTupleReader(
   if (not m_file->IsOpen()) { throw std::runtime_error("Could not open file"); }
   m_tree = static_cast<TTree*>(m_file->Get(tree_name.c_str()));
   if (not m_tree) { throw std::runtime_error("Could not read tree"); }
-  setup_branches(std::make_index_sequence<NamedTuple::N>());
+  setup_branches(std::make_index_sequence<std::tuple_size<Tuple>::value>());
 }
 
 template<typename NamedTuple>
-inline RootNamedTupleReader<NamedTuple>::RootNamedTupleReader(
+inline NamedTupleRootReader<NamedTuple>::NamedTupleRootReader(
   TDirectory* dir, const std::string& tree_name)
   : m_file(nullptr) // no file since it is not owned by the writer
   , m_tree(nullptr)
@@ -261,10 +267,11 @@ inline RootNamedTupleReader<NamedTuple>::RootNamedTupleReader(
   if (not dir) { throw std::runtime_error("Invalid input directory given"); }
   m_tree = static_cast<TTree*>(dir->Get(tree_name.c_str()));
   if (not m_tree) { throw std::runtime_error("Could not read tree"); }
-  setup_branches(std::make_index_sequence<NamedTuple::N>());
+  setup_branches(std::make_index_sequence<std::tuple_size<Tuple>::value>());
 }
 
 namespace io_root_impl {
+
 // WARNING this is a hack to get around inconsistent ROOT types for 8bit chars
 // and 64bit intengers compared to the stdint types.
 __attribute__((unused)) inline ULong64_t*
@@ -292,24 +299,28 @@ get_address(T& x)
 {
   return &x;
 }
+
 } // namespace io_root_impl
 
 template<typename NamedTuple>
 template<std::size_t... I>
 inline void
-RootNamedTupleReader<NamedTuple>::setup_branches(std::index_sequence<I...>)
+NamedTupleRootReader<NamedTuple>::setup_branches(std::index_sequence<I...>)
 {
-  static_assert(sizeof...(I) == NamedTuple::N, "Something is very wrong");
+  static_assert(
+    sizeof...(I) == std::tuple_size<Tuple>::value, "Something is very wrong");
+
+  using std::get;
 
   // construct leaf names w/ type info
   std::array<std::string, sizeof...(I)> names = NamedTuple::names();
   // construct branches
   (void)std::array<Int_t, sizeof...(I)>{m_tree->SetBranchAddress(
-    names[I].c_str(), io_root_impl::get_address(std::get<I>(m_data)))...};
+    names[I].c_str(), io_root_impl::get_address(get<I>(m_data)))...};
 }
 
 template<typename NamedTuple>
-inline RootNamedTupleReader<NamedTuple>::~RootNamedTupleReader()
+inline NamedTupleRootReader<NamedTuple>::~NamedTupleRootReader()
 {
   // reader owns the file
   if (m_file) {
@@ -320,7 +331,7 @@ inline RootNamedTupleReader<NamedTuple>::~RootNamedTupleReader()
 
 template<typename NamedTuple>
 inline bool
-RootNamedTupleReader<NamedTuple>::read(NamedTuple& record)
+NamedTupleRootReader<NamedTuple>::read(NamedTuple& record)
 {
   auto ret = m_tree->GetEntry(m_next);
   // i/o error occured

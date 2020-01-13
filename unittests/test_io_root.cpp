@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(root_namedtuple_write_read)
 {
   // write some data
   {
-    dfe::RootNamedTupleWriter<Record> writer("test.root", "records");
+    dfe::NamedTupleRootWriter<Record> writer("test.root", "records");
 
     for (size_t i = 0; i < kNRecords; ++i) {
       BOOST_CHECK_NO_THROW(writer.append(make_record(i)));
@@ -104,7 +104,7 @@ BOOST_AUTO_TEST_CASE(root_namedtuple_write_read)
   }
   // read the data back
   {
-    dfe::RootNamedTupleReader<Record> reader("test.root", "records");
+    dfe::NamedTupleRootReader<Record> reader("test.root", "records");
 
     Record record;
     size_t n = 0;
