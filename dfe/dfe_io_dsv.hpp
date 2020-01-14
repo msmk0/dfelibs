@@ -86,6 +86,37 @@ private:
   static unsigned write(const std::vector<T, Allocator>& xs, std::ostream& os);
 };
 
+/// Read arbitrary data as delimiter-separated values from a text file.
+template<char Delimiter>
+class DsvReader {
+public:
+  DsvReader() = delete;
+  DsvReader(const DsvReader&) = delete;
+  DsvReader(DsvReader&&) = default;
+  ~DsvReader() = default;
+  DsvReader& operator=(const DsvReader&) = delete;
+  DsvReader& operator=(DsvReader&&) = default;
+
+  /// Open a file at the given path.
+  ///
+  /// \param path Path to the input file
+  DsvReader(const std::string& path);
+
+  /// Read the next line from the file.
+  ///
+  /// \returns true   if the line was successfully read
+  /// \returns false  if no more lines are available
+  bool read(std::vector<std::string>& columns);
+
+  /// Return the number of lines read so far.
+  std::size_t num_lines() const { return m_num_lines; }
+
+private:
+  std::ifstream m_file;
+  std::string m_line;
+  std::size_t m_num_lines = 0;
+};
+
 /// Write records as delimiter-separated values into a text file.
 template<char Delimiter, typename NamedTuple>
 class NamedTupleDsvWriter {
@@ -176,25 +207,21 @@ public:
   /// Return the number of additional columns that are not part of the tuple.
   std::size_t num_extra_columns() const { return m_extra_columns.size(); }
   /// Return the number of records read so far.
-  std::size_t num_records() const { return m_num_records; }
+  std::size_t num_records() const { return m_reader.num_lines() - 1u; }
 
 private:
   // the equivalent std::tuple-like type
   using Tuple = typename NamedTuple::Tuple;
 
-  std::ifstream m_file;
-  std::string m_line;
-  std::vector<std::string> m_columns;
-  std::size_t m_num_lines = 0;
-  std::size_t m_num_records = 0;
+  DsvReader<Delimiter> m_reader;
   // will be fixed after reading the header
   std::size_t m_num_columns = SIZE_MAX;
-  // map the tuple index to the corresponding column index on file.
+  std::vector<std::string> m_columns;
+  // map the tuple index to the corresponding column index on file
   std::array<std::size_t, std::tuple_size<Tuple>::value> m_tuple_to_column;
-  // column indices that do not map to a tuple item.
+  // column indices that do not map to a tuple items
   std::vector<std::size_t> m_extra_columns;
 
-  bool read_line();
   void parse_header();
   template<std::size_t... I>
   void parse_record(NamedTuple& record, std::index_sequence<I...>) const;
@@ -285,17 +312,55 @@ DsvWriter<Delimiter>::write(
   return n;
 }
 
-// implementation text reader
+// implementation reader
 
-template<char Delimiter, typename NamedTuple>
-inline NamedTupleDsvReader<Delimiter, NamedTuple>::NamedTupleDsvReader(
-  const std::string& path, bool verify_header)
+template<char Delimiter>
+inline DsvReader<Delimiter>::DsvReader(const std::string& path)
   : m_file(path, std::ios_base::binary | std::ios_base::in)
 {
   if (not m_file.is_open() or m_file.fail()) {
     throw std::runtime_error("Could not open file '" + path + "'");
   }
-  if (not read_line()) {
+}
+
+template<char Delimiter>
+inline bool
+DsvReader<Delimiter>::read(std::vector<std::string>& columns)
+{
+  // read the next line and check for both end-of-file and errors
+  std::getline(m_file, m_line);
+  if (m_file.eof()) { return false; }
+  if (m_file.fail()) {
+    throw std::runtime_error(
+      "Could not read line " + std::to_string(m_num_lines));
+  }
+  m_num_lines += 1;
+
+  // split the line into columns
+  columns.clear();
+  for (std::string::size_type pos = 0; pos < m_line.size();) {
+    auto del = m_line.find_first_of(Delimiter, pos);
+    if (del == std::string::npos) {
+      // reached the end of the line; also determines the last column
+      columns.emplace_back(m_line, pos);
+      break;
+    } else {
+      columns.emplace_back(m_line, pos, del - pos);
+      // start next column search after the delimiter
+      pos = del + 1;
+    }
+  }
+  return true;
+}
+
+// implementation named tuple reader
+
+template<char Delimiter, typename NamedTuple>
+inline NamedTupleDsvReader<Delimiter, NamedTuple>::NamedTupleDsvReader(
+  const std::string& path, bool verify_header)
+  : m_reader(path)
+{
+  if (not m_reader.read(m_columns)) {
     throw std::runtime_error("Could not read header from '" + path + "'");
   }
   if (verify_header) {
@@ -313,22 +378,19 @@ template<char Delimiter, typename NamedTuple>
 inline bool
 NamedTupleDsvReader<Delimiter, NamedTuple>::read(NamedTuple& record)
 {
-  if (not read_line()) { return false; }
+  if (not m_reader.read(m_columns)) { return false; }
   // check for consistent entries per-line
   if (m_columns.size() < m_num_columns) {
     throw std::runtime_error(
-      "Too few columns in line " + std::to_string(m_num_lines));
+      "Too few columns in line " + std::to_string(m_reader.num_lines()));
   }
   if (m_num_columns < m_columns.size()) {
     throw std::runtime_error(
-      "Too many columns in line " + std::to_string(m_num_lines));
+      "Too many columns in line " + std::to_string(m_reader.num_lines()));
   }
   // convert to tuple
-  //  typename NamedTuple::Tuple values;
   parse_record(
     record, std::make_index_sequence<std::tuple_size<Tuple>::value>{});
-  //  record = values;
-  m_num_records += 1;
   return true;
 }
 
@@ -344,36 +406,6 @@ NamedTupleDsvReader<Delimiter, NamedTuple>::read(
     std::istringstream is(m_columns[i]);
     extra.push_back({});
     is >> extra.back();
-  }
-  return true;
-}
-
-template<char Delimiter, typename NamedTuple>
-inline bool
-NamedTupleDsvReader<Delimiter, NamedTuple>::read_line()
-{
-  // read the next line and check for both end-of-file and errors
-  std::getline(m_file, m_line);
-  m_num_lines += 1;
-  if (m_file.eof()) { return false; }
-  if (m_file.fail()) {
-    throw std::runtime_error(
-      "Could not read line " + std::to_string(m_num_lines));
-  }
-
-  // split the line into columns
-  m_columns.clear();
-  for (std::string::size_type pos = 0; pos < m_line.size();) {
-    auto del = m_line.find_first_of(Delimiter, pos);
-    if (del == std::string::npos) {
-      // reached the end of the line; also determines the last column
-      m_columns.emplace_back(m_line, pos);
-      break;
-    } else {
-      m_columns.emplace_back(m_line, pos, del - pos);
-      // start next column search after the delimiter
-      pos = del + 1;
-    }
   }
   return true;
 }
