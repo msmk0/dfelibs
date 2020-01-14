@@ -163,6 +163,17 @@ private:
   }
 };
 
+// string conversion helper functions
+
+template<typename T>
+static void
+parse(const std::string& str, T& value)
+{
+  // TODO use somthing w/ lower overhead then stringstream e.g. std::from_chars
+  std::istringstream is(str);
+  is >> value;
+}
+
 /// Read records as delimiter-separated values from a text file.
 ///
 /// The reader is strict about its input format to avoid ambiguities. If
@@ -185,13 +196,22 @@ public:
 
   /// Open a file at the given path.
   ///
-  /// \param path           Path to the input file
-  /// \param verify_header  true to check header column names, false to skip
-  NamedTupleDsvReader(const std::string& path, bool verify_header = true);
+  /// \param path              Path to the input file
+  /// \param optional_columns  Record columns that can be missing in the file
+  /// \param verify_header     true to check header column names, false to skip
+  ///
+  /// The set of optional columns must match names in the record. When allowing
+  /// optional columns, header verification must be set to true.
+  NamedTupleDsvReader(
+    const std::string& path,
+    const std::vector<std::string>& optional_columns = {},
+    bool verify_header = true);
 
   /// Read the next record from the file.
   ///
-  /// Extra columns in the file will be ignored.
+  /// Extra columns in the file will be ignored. Elements of the record that
+  /// correspond to missing, optional columns will not be set and retain
+  /// their value.
   ///
   /// \returns true   if a record was successfully read
   /// \returns false  if no more records are available
@@ -214,17 +234,31 @@ private:
   using Tuple = typename NamedTuple::Tuple;
 
   DsvReader<Delimiter> m_reader;
-  // will be fixed after reading the header
-  std::size_t m_num_columns = SIZE_MAX;
   std::vector<std::string> m_columns;
-  // map the tuple index to the corresponding column index on file
-  std::array<std::size_t, std::tuple_size<Tuple>::value> m_tuple_to_column;
+  // #columns is fixed to a reasonable value after reading the header
+  std::size_t m_num_columns = SIZE_MAX;
+  // map tuple index to column index in the file, SIZE_MAX for missing elements
+  std::array<std::size_t, std::tuple_size<Tuple>::value> m_tuple_column_map;
   // column indices that do not map to a tuple items
   std::vector<std::size_t> m_extra_columns;
 
-  void parse_header();
+  void use_default_columns();
+  void parse_header(const std::vector<std::string>& optional_columns);
   template<std::size_t... I>
-  void parse_record(NamedTuple& record, std::index_sequence<I...>) const;
+  void parse_record(NamedTuple& record, std::index_sequence<I...>) const
+  {
+    // see namedtuple_impl::print_tuple for explanation
+    // allow different column ordering on file and optional columns
+    (void)(int[]){0, (parse_element<I>(record), 0)...};
+  }
+  template<std::size_t I>
+  void parse_element(NamedTuple& record) const
+  {
+    using std::get;
+    if (m_tuple_column_map[I] != SIZE_MAX) {
+      parse(m_columns[m_tuple_column_map[I]], get<I>(record));
+    }
+  }
 };
 
 // implementation writer
@@ -357,20 +391,23 @@ DsvReader<Delimiter>::read(std::vector<std::string>& columns)
 
 template<char Delimiter, typename NamedTuple>
 inline NamedTupleDsvReader<Delimiter, NamedTuple>::NamedTupleDsvReader(
-  const std::string& path, bool verify_header)
+  const std::string& path, const std::vector<std::string>& optional_columns,
+  bool verify_header)
   : m_reader(path)
 {
+  // optional columns only work if we verify the header
+  if ((not optional_columns.empty()) and (not verify_header)) {
+    throw std::runtime_error(
+      "Optional columns can not be used without header verification");
+  }
+  // first line is always the header
   if (not m_reader.read(m_columns)) {
     throw std::runtime_error("Could not read header from '" + path + "'");
   }
   if (verify_header) {
-    parse_header();
+    parse_header(optional_columns);
   } else {
-    // assume row content is identical in content and order to the tuple
-    m_num_columns = std::tuple_size<Tuple>::value;
-    for (std::size_t i = 0; i < m_tuple_to_column.size(); ++i) {
-      m_tuple_to_column[i] = i;
-    }
+    use_default_columns();
   }
 }
 
@@ -400,57 +437,67 @@ inline bool
 NamedTupleDsvReader<Delimiter, NamedTuple>::read(
   NamedTuple& record, std::vector<T>& extra)
 {
+  // parse columns belonging to the regular record
   if (not read(record)) { return false; }
-  extra.clear();
-  for (auto i : m_extra_columns) {
-    std::istringstream is(m_columns[i]);
-    extra.push_back({});
-    is >> extra.back();
+  // parse extra columns
+  extra.resize(m_extra_columns.size());
+  for (std::size_t i = 0; i < m_extra_columns.size(); ++i) {
+    parse(m_columns[m_extra_columns[i]], extra[i]);
   }
   return true;
 }
 
 template<char Delimiter, typename NamedTuple>
 inline void
-NamedTupleDsvReader<Delimiter, NamedTuple>::parse_header()
+NamedTupleDsvReader<Delimiter, NamedTuple>::use_default_columns()
+{
+  // assume row content is identical in content and order to the tuple
+  m_num_columns = std::tuple_size<Tuple>::value;
+  for (std::size_t i = 0; i < m_tuple_column_map.size(); ++i) {
+    m_tuple_column_map[i] = i;
+  }
+  // no extra columns by construction
+  m_extra_columns.clear();
+}
+
+template<char Delimiter, typename NamedTuple>
+inline void
+NamedTupleDsvReader<Delimiter, NamedTuple>::parse_header(
+  const std::vector<std::string>& optional_columns)
 {
   const auto& names = NamedTuple::names();
-  // check that all columns are available
+
+  // the number of header columns fixes the expected number of data columns
+  m_num_columns = m_columns.size();
+
+  // check that all non-optional columns are available
   for (const auto& name : names) {
-    auto it = std::find(m_columns.begin(), m_columns.end(), name);
-    if (it == m_columns.end()) {
+    // no need to for availability if the column is optional
+    auto o = std::find(optional_columns.begin(), optional_columns.end(), name);
+    if (o != optional_columns.end()) { continue; }
+    // missing, non-optional column mean we can not continue
+    auto c = std::find(m_columns.begin(), m_columns.end(), name);
+    if (c == m_columns.end()) {
       throw std::runtime_error("Missing header column '" + name + "'");
     }
   }
-  // determine column order
+
+  // ensure missing columns are correctly marked as such
+  m_tuple_column_map.fill(SIZE_MAX);
+
+  // determine column-tuple mapping and extra column indices
+  m_extra_columns.clear();
   for (std::size_t i = 0; i < m_columns.size(); ++i) {
     // find the position of the column in the tuple.
     auto it = std::find(names.begin(), names.end(), m_columns[i]);
     if (it != names.end()) {
       // establish mapping between column and tuple item position
-      m_tuple_to_column[std::distance(names.begin(), it)] = i;
+      m_tuple_column_map[std::distance(names.begin(), it)] = i;
     } else {
       // record non-tuple columns
       m_extra_columns.push_back(i);
     }
   }
-  // fix number of columns for all future reads
-  m_num_columns = m_columns.size();
-}
-
-template<char Delimiter, typename NamedTuple>
-template<std::size_t... I>
-inline void
-NamedTupleDsvReader<Delimiter, NamedTuple>::parse_record(
-  NamedTuple& record, std::index_sequence<I...>) const
-{
-  using std::get;
-
-  // see namedtuple_impl::print_tuple for explanation
-  // allow different column ordering on file compared to the namedtuple
-  (void)(int[]){
-    0, (std::istringstream(m_columns[m_tuple_to_column[I]]) >> get<I>(record),
-        0)...};
 }
 
 } // namespace io_dsv_impl

@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(csv_namedtuple_write_read)
   }
   // read the data back w/o verifying the header
   {
-    dfe::NamedTupleCsvReader<Record> reader("test.csv", false);
+    dfe::NamedTupleCsvReader<Record> reader("test.csv", {}, false);
 
     TEST_READER_RECORDS(reader);
     BOOST_TEST(reader.num_records() == kNRecords);
@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(tsv_namedtuple_write_read)
   }
   // read the data back w/o verifying the header
   {
-    dfe::NamedTupleTsvReader<Record> reader("test.tsv", false);
+    dfe::NamedTupleTsvReader<Record> reader("test.tsv", {}, false);
 
     TEST_READER_RECORDS(reader);
     BOOST_TEST(reader.num_records() == kNRecords);
@@ -170,6 +170,47 @@ BOOST_AUTO_TEST_CASE(tsv_namedtuple_read_extra_columns)
   BOOST_TEST(reader.num_extra_columns() == 3);
 }
 
+// w/ optional columns
+
+static void
+test_read_with_optionals(const std::vector<std::string>& optional_columns)
+{
+  using Reader = dfe::NamedTupleCsvReader<Record>;
+
+  Reader reader(make_data_path("missing_columns.csv"), optional_columns);
+  Record data;
+  Record reference = data;
+
+  for (std::size_t i = 0; reader.read(data); ++i) {
+    Record expected = make_record(i);
+    // existing columns should match expected
+    BOOST_TEST(data.y == expected.y);
+    BOOST_TEST(data.z == expected.z);
+    BOOST_TEST(data.a == expected.a);
+    BOOST_TEST(data.c == expected.c);
+    BOOST_TEST(data.d == expected.d);
+    // missing columns should be left untouched
+    BOOST_TEST(data.x == reference.x);
+    BOOST_TEST(data.b == reference.b);
+  }
+  BOOST_TEST(reader.num_records() == kNOnfile);
+  BOOST_TEST(reader.num_extra_columns() == 0);
+}
+
+BOOST_AUTO_TEST_CASE(csv_namedtuple_read_missing_optionals)
+{
+  BOOST_TEST_CONTEXT("optional columns b,x")
+  {
+    // b and x are actually missing in the file
+    test_read_with_optionals({"b", "x"});
+  }
+  BOOST_TEST_CONTEXT("optional columns a,b,x,z")
+  {
+    // b and x are actually missing but a and z exist
+    test_read_with_optionals({"a", "b", "x", "z"});
+  }
+}
+
 // failure tests for readers
 
 BOOST_AUTO_TEST_CASE(tsv_namedtuple_read_bad_files)
@@ -178,6 +219,14 @@ BOOST_AUTO_TEST_CASE(tsv_namedtuple_read_bad_files)
 
   Record r;
   BOOST_CHECK_THROW(Reader("does/not/exist.tsv"), std::runtime_error);
+  // optional columns w/o header verification can not work
+  BOOST_CHECK_THROW(
+    Reader(make_data_path("missing_columns.tsv"), {"b", "x"}, false),
+    std::runtime_error);
+  // optional columns that are not part of th record definition
+  BOOST_CHECK_THROW(
+    Reader(make_data_path("extra_columns.tsv"), {"asfd", "xlkj", "xxdfd"}),
+    std::runtime_error);
   BOOST_CHECK_THROW(
     Reader(make_data_path("bad_header1.tsv")), std::runtime_error);
   BOOST_CHECK_THROW(
