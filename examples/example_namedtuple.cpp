@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <random>
+#include <string>
 
 #include <dfe/dfe_io_dsv.hpp>
 #include <dfe/dfe_io_numpy.hpp>
@@ -17,23 +18,29 @@ struct Data {
   uint32_t dac0;
   uint32_t temperature;
   int64_t timestamp;
-  float humidity;
+  double humidity;
   int unused;
 
   DFE_NAMEDTUPLE(Data, dac0, temperature, timestamp, humidity);
 };
 
-int
-main(int argc, char* argv[])
+std::string
+make_path(std::string extension)
+{
+  return "example" + extension;
+}
+
+void
+write_files()
 {
   // text writers
-  dfe::NamedTupleCsvWriter<Data> csv("test.csv");
-  dfe::NamedTupleTsvWriter<Data> tsv("test.tsv");
+  dfe::NamedTupleCsvWriter<Data> csv(make_path(".csv"));
+  dfe::NamedTupleTsvWriter<Data> tsv(make_path(".tsv"));
   // numpy writer
-  dfe::NamedTupleNumpyWriter<Data> npy("test.npy");
+  dfe::NamedTupleNumpyWriter<Data> npy(make_path(".npy"));
 #ifdef DFE_USE_IO_ROOT
   // (optional) ROOT writer
-  dfe::NamedTupleRootWriter<Data> roo("test.root", "records");
+  dfe::NamedTupleRootWriter<Data> roo(make_path(".root"), "records");
 #endif
 
   // random data generators
@@ -43,7 +50,8 @@ main(int argc, char* argv[])
   auto rnd_jitr = std::uniform_int_distribution<int64_t>(-10, 10);
   auto rnd_hmdt = std::normal_distribution<float>(35.0, 5.0);
 
-  for (int i = 0; i < 1024; ++i) {
+  int i = 0;
+  for (; i < (1 << 10); ++i) {
     Data x;
     x.dac0 = rnd_dac0(rng);
     x.temperature = rnd_temp(rng);
@@ -57,9 +65,28 @@ main(int argc, char* argv[])
 #ifdef DFE_USE_IO_ROOT
     roo.append(x);
 #endif
-
-    std::cout << "entry " << i << ": " << x << std::endl;
   }
 
+  std::cout << "wrote " << i << " entries" << std::endl;
+}
+
+void
+read_file_csv()
+{
+  dfe::NamedTupleCsvReader<Data> reader(make_path(".csv"));
+  Data x;
+
+  while (reader.read(x)) {
+    // here you can process the data
+    std::cout << "read entry: " << x << "\n";
+  }
+  std::cout << "read " << reader.num_records() << " entries" << std::endl;
+}
+
+int
+main(int argc, char* argv[])
+{
+  write_files();
+  read_file_csv();
   return EXIT_SUCCESS;
 }
