@@ -45,11 +45,11 @@ template<char Delimiter>
 class DsvWriter {
 public:
   DsvWriter() = delete;
-  DsvWriter(DsvWriter&&) = default;
   DsvWriter(const DsvWriter&) = delete;
+  DsvWriter(DsvWriter&&) = default;
   ~DsvWriter() = default;
-  DsvWriter& operator=(DsvWriter&&) = default;
   DsvWriter& operator=(const DsvWriter&) = delete;
+  DsvWriter& operator=(DsvWriter&&) = default;
 
   /// Create a file at the given path. Overwrites existing data.
   ///
@@ -72,6 +72,9 @@ public:
   void append(Arg0&& arg0, Args&&... args);
 
 private:
+  std::ofstream m_file;
+  std::size_t m_num_columns;
+
   // enable_if to prevent this overload to be used for std::vector<T> as well
   template<typename T>
   static std::enable_if_t<
@@ -81,9 +84,6 @@ private:
   write(T&& x, std::ostream& os);
   template<typename T, typename Allocator>
   static unsigned write(const std::vector<T, Allocator>& xs, std::ostream& os);
-
-  std::ofstream m_file;
-  std::size_t m_num_columns;
 };
 
 /// Write records as delimiter-separated values into a text file.
@@ -200,7 +200,7 @@ private:
   void parse_record(NamedTuple& record, std::index_sequence<I...>) const;
 };
 
-// implementation untyped writer
+// implementation writer
 
 template<char Delimiter>
 inline DsvWriter<Delimiter>::DsvWriter(
