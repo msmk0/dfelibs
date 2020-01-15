@@ -125,13 +125,23 @@ tsv.read(data); // same call for other readers
 ```
 
 Delimiter-based readers support arbitrary column order and extra columns that
-are not part of the namedtuple definition. If needed, they can be read as
+are not part of the namedtuple definition. They can be read via
 
 ```cpp
 Record data;
 std::vector<double> extra;
 tsv.read(data, extra); // always convert all extra columns to the same type
 ```
+
+By default, all elements of the namedtuple must exist for the delimiter-based
+readers. Some elements can be marked as optional in the reader
+
+```cpp
+dfe::NamedTupleTsvReader<Record> tsv("records.tsv", {"x", "b"});
+```
+
+and the corresponding element in the namedtuple will not be touched if the
+corresponding column does not exist on file.
 
 Poly
 ----
