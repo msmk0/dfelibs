@@ -1,5 +1,5 @@
-Dr. Fred Edison's incredible useful C++14 libraries
-===================================================
+# Dr. Fred Edison's incredible useful C++14 libraries
+
 May contain traces of industrial strength snake oil.
 
 This is a set of small single-header libraries. They require no installation
@@ -15,8 +15,7 @@ the `dfelibs` target, i.e.
 
 All libraries are licensed under the terms of the [MIT license][mit_license].
 
-Dispatcher
-----------
+## Dispatcher
 
 Register arbitrary functions with the dispatcher
 
@@ -45,8 +44,7 @@ into the correct types
 dispatch.call_parsed("a_function", {"12", "0.23", "a message"});
 ```
 
-Flat containers
----------------
+## Flat containers
 
 Set-like and map-like containers that store the data internally as sorted,
 flat arrays continuous in memory (as opposed to a tree-like structure as e.g.
@@ -67,8 +65,7 @@ map.emplace("xyz", "something"); // constructs element in-place
 map.contains("abc"); // returns false
 ```
 
-Namedtuple
-----------
+## Namedtuple
 
 Add some self-awareness to a POD type
 
@@ -143,8 +140,7 @@ dfe::NamedTupleTsvReader<Record> tsv("records.tsv", {"x", "b"});
 and the corresponding element in the namedtuple will not be touched if the
 corresponding column does not exist on file.
 
-Poly
-----
+## Poly
 
 Evaluate polynomial functions and their derivatives using either a
 (variable-sized) container of coefficients
@@ -168,8 +164,7 @@ or using the coefficients directly for fixed order polynomials:
 float y = dfe::polynomial_val(0.5f, {0.25f, 1.0f, 0.75f});
 ```
 
-Archived libraries
-------------------
+## Archived libraries
 
 The following libraries are archived and should probably not be used e.g.
 because they only provide limited functionality or better alternatives
@@ -177,7 +172,7 @@ exist. But you never know and they might still be useful somewhere.
 
 ### Histogram
 
-**Note**: Consider using [Boost Histogram][boost_histogram] instead.
+**Note**: Consider using [Boost.Histogram][boost_histogram] instead.
 
 Compose a multi-dimensional histogram with configurable axis types
 
@@ -207,7 +202,7 @@ h1.fill(2.25, 1.0, 65);      // fails, due to axis 0 overflow
 
 ### Small vector
 
-**Note**: Consider using `small_vector` from [Boost Containers][boost_histogram]
+**Note**: Consider using `small_vector` from [Boost.Container][boost_container]
 instead.
 
 A vector-like container of elements than can store a fixed number of
@@ -222,8 +217,9 @@ vec.emplace_back(4.2); // stored directly in the container
 vec.emplace_back(5.0); // memory is allocated and data moved
 ```
 
+
+[boost_container]: https://www.boost.org/doc/libs/1_72_0/doc/html/container.html
 [boost_histogram]: https://www.boost.org/doc/libs/1_72_0/libs/histogram/doc/html/index.html
-[boost_smallvector]: https://www.boost.org/doc/libs/1_72_0/doc/html/container/non_standard_containers.html#container.non_standard_containers.small_vector
 [cmake]: https://www.cmake.org
 [mit_license]: https://opensource.org/licenses/MIT
 [npy]: https://docs.scipy.org/doc/numpy/neps/npy-format.html
