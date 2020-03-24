@@ -26,6 +26,8 @@ if(dfelibs_ENABLE_INSTALL)
   include(GNUInstallDirs)
   install(DIRECTORY dfe DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 endif()
+
+# optional components
 if(dfelibs_BUILD_EXAMPLES)
   add_subdirectory(examples)
 endif()
