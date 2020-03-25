@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 /// \file
 /// \brief Unit tests for dfe::Histogram
 

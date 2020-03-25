@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 /// \file
 /// \brief Example record shared among namedtuple tests
 

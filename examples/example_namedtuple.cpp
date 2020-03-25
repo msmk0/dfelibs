@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 /// \file
 /// \brief Demonstrate the basic named tuple writer functionality
 

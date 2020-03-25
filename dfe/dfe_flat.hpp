@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // Copyright 2019 Moritz Kiehn
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -110,7 +111,10 @@ public:
   /// Writable access to an element or throw if it does not exists.
   value_type& at(const Key& key) { return m_items[m_keys.at(key).index]; }
   /// Read-only access to an element or throw if it does not exists.
-  const value_type& at(const Key& key) const { return m_items[m_keys.at(key).index]; }
+  const value_type& at(const Key& key) const
+  {
+    return m_items[m_keys.at(key).index];
+  }
 
   /// Return true if there are no elements in the map.
   bool empty() const { return m_keys.empty(); }

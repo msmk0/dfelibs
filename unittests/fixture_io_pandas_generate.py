@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# SPDX-License-Identifier: MIT
 #
 # Generate csv/tsv files with numpy/pandas to be read by the `dfe_nameduple`.
 

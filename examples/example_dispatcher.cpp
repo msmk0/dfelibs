@@ -1,6 +1,7 @@
+// SPDX-License-Identifier: MIT
+
 /// \file
 /// \brief Demonstrate dfe::Dispatcher functionality
-///
 
 #include <cstdlib>
 #include <iostream>

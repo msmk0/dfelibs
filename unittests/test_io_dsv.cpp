@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 /// \file
 /// \brief Unit tests for (d)elimiter-(s)eparated (v)alues i/o
 

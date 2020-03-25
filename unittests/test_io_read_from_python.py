@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# SPDX-License-Identifier: MIT
 #
 # Read in files written by `dfe_namedtuple.hpp` with numpy and check content
 
@@ -58,4 +59,3 @@ def test(datadir='.'):
 if __name__ == '__main__':
     import sys
     test(*sys.argv[1:])
-
