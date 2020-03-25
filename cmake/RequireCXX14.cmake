@@ -1,8 +1,4 @@
-# Require support for C++14 globally.
-#
-# If a higher standard has already been set via CMAKE_CXX_FLAGS it is retained,
-# existing flags for lower standards are removed.
-#
+# SPDX-License-Identifier: MIT
 # Copyright 2015-2018 Moritz Kiehn
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -22,6 +18,11 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
+
+# Require support for C++14 globally.
+#
+# If a higher standard has already been set via CMAKE_CXX_FLAGS it is retained,
+# existing flags for lower standards are removed.
 
 include(CheckCXXCompilerFlag)
 
