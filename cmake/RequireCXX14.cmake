@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright 2015-2018 Moritz Kiehn
+# Copyright 2015-2020 Moritz Kiehn
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,10 +23,18 @@
 #
 # If a higher standard has already been set via CMAKE_CXX_FLAGS it is retained,
 # existing flags for lower standards are removed.
+#
+# WARNING
+# Starting with CMake 3.8, this module is deprecated. A much cleaner way to
+# require C++14 (or any other language standard) is with per-target compile
+# features. Use e.g.
+#
+#     target_compile_features(<target> INTERFACE cxx_std_14)
+#
 
 include(CheckCXXCompilerFlag)
 
-CHECK_CXX_COMPILER_FLAG("-std=c++14" _has_cxx14_support)
+check_cxx_compiler_flag("-std=c++14" _has_cxx14_support)
 if(NOT _has_cxx14_support)
   message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++14 support.")
 endif()
