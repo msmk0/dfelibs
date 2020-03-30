@@ -42,32 +42,32 @@
 /// conversion to equivalent `std::tuple<...>` via implicit conversion or
 /// explicitely via `.tuple()`,  and assignment from equivalent tuples.
 /// The names can be accessed via `::names()`.
-#define DFE_NAMEDTUPLE(name, members...) \
-  using Tuple = decltype(::std::make_tuple(members)); \
+#define DFE_NAMEDTUPLE(name, ...) \
+  using Tuple = decltype(::std::make_tuple(__VA_ARGS__)); \
   static ::std::array<::std::string, ::std::tuple_size<Tuple>::value> \
   names() { \
     return ::dfe::namedtuple_impl::unstringify< \
-      ::std::tuple_size<Tuple>::value>((#members)); \
+      ::std::tuple_size<Tuple>::value>((#__VA_ARGS__)); \
   } \
   template<typename... U> \
   name& operator=(const ::std::tuple<U...>& other) { \
-    ::std::tie(members) = other; \
+    ::std::tie(__VA_ARGS__) = other; \
     return *this; \
   } \
   template<typename... U> \
   name& operator=(::std::tuple<U...>&& other) { \
-    ::std::tie(members) = ::std::forward<std::tuple<U...>>(other); \
+    ::std::tie(__VA_ARGS__) = ::std::forward<std::tuple<U...>>(other); \
     return *this; \
   } \
-  operator Tuple() const { return ::std::make_tuple(members); } \
-  Tuple tuple() const { return ::std::make_tuple(members); } \
+  operator Tuple() const { return ::std::make_tuple(__VA_ARGS__); } \
+  Tuple tuple() const { return ::std::make_tuple(__VA_ARGS__); } \
   template<std::size_t I> \
   constexpr ::std::tuple_element_t<I, Tuple>& get() { \
-    return ::std::get<I>(std::tie(members)); \
+    return ::std::get<I>(std::tie(__VA_ARGS__)); \
   } \
   template<::std::size_t I> \
   constexpr const ::std::tuple_element_t<I, Tuple>& get() const { \
-    return ::std::get<I>(std::tie(members)); \
+    return ::std::get<I>(std::tie(__VA_ARGS__)); \
   } \
   template<::std::size_t I> \
   friend constexpr ::std::tuple_element_t<I, Tuple>& get(name& nt) { \
