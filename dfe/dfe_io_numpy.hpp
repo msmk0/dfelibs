@@ -101,7 +101,7 @@ constexpr const char* kNumpyDtypeCode<bool> = "?";
 
 template<typename... Types>
 constexpr std::array<const char*, sizeof...(Types)>
-dtypes_codes(const std::tuple<Types...>& t) {
+dtypes_codes(const std::tuple<Types...>&) {
   return {kNumpyDtypeCode<typename std::decay<Types>::type>...};
 }
 
