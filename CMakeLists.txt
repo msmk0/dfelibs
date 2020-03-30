@@ -35,3 +35,7 @@ if(dfelibs_BUILD_UNITTESTS)
   enable_testing()
   add_subdirectory(unittests)
 endif()
+
+# source code formatting
+include(ClangFormatTargets)
+add_format_targets(dfe/*.hpp examples/*.cpp unittests/*.cpp unittests/*.hpp)
