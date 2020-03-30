@@ -10,8 +10,7 @@
 
 #include "dfe/dfe_smallvector.hpp"
 
-BOOST_AUTO_TEST_CASE(smallvector_int)
-{
+BOOST_AUTO_TEST_CASE(smallvector_int) {
   dfe::SmallVector<int, 4> sm;
 
   BOOST_TEST(sm.empty());
@@ -32,8 +31,7 @@ BOOST_AUTO_TEST_CASE(smallvector_int)
   }
 }
 
-BOOST_AUTO_TEST_CASE(smallvector_int_emplace)
-{
+BOOST_AUTO_TEST_CASE(smallvector_int_emplace) {
   dfe::SmallVector<double, 6> at_front;
   dfe::SmallVector<double, 6> at_back;
 
@@ -52,11 +50,10 @@ BOOST_AUTO_TEST_CASE(smallvector_int_emplace)
 class Simple {
 public:
   Simple() = default;
-  Simple(int i)
-    : m_num(2 * i)
-    , m_str("abc")
-  {
-    for (; 0 < i; --i) { m_str.append("xy"); }
+  Simple(int i) : m_num(2 * i), m_str("abc") {
+    for (; 0 < i; --i) {
+      m_str.append("xy");
+    }
   }
 
   int num() const { return m_num; }
@@ -67,8 +64,7 @@ private:
   std::string m_str;
 };
 
-BOOST_AUTO_TEST_CASE(smallvector_simpleclass)
-{
+BOOST_AUTO_TEST_CASE(smallvector_simpleclass) {
   dfe::SmallVector<Simple, 8> sm;
 
   BOOST_TEST(sm.empty());

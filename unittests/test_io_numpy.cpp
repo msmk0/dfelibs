@@ -13,8 +13,7 @@ static constexpr size_t kNRecords = 1024;
 
 BOOST_TEST_DONT_PRINT_LOG_VALUE(Record::Tuple)
 
-BOOST_AUTO_TEST_CASE(numpy_namedtuple_write)
-{
+BOOST_AUTO_TEST_CASE(numpy_namedtuple_write) {
   // write some data
   {
     dfe::NamedTupleNumpyWriter<Record> writer("test.npy");

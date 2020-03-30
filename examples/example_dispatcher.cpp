@@ -11,45 +11,41 @@
 // example functions
 
 void
-func_noreturn(int x, double f)
-{
+func_noreturn(int x, double f) {
   std::cout << "free function w/o return: x=" << x << " f=" << f << '\n';
 }
 
 double
-func_return(int x, double f)
-{
+func_return(int x, double f) {
   std::cout << "free function w/ return: x=" << x << " f=" << f << '\n';
   return x + f;
 }
 
 dfe::Variable
-func_native(const std::vector<dfe::Variable>& args)
-{
+func_native(const std::vector<dfe::Variable>& args) {
   std::cout << "native w/ " << args.size() << " arguments\n";
   std::string ret;
-  for (const auto& arg : args) { ret += arg.as<std::string>(); }
+  for (const auto& arg : args) {
+    ret += arg.as<std::string>();
+  }
   return dfe::Variable(ret);
 }
 
 struct WithFunctions {
   float x;
 
-  float member_add(float y)
-  {
+  float member_add(float y) {
     std::cout << "member add x=" << x << " y=" << y << '\n';
     return x + y;
   }
-  static float static_add(float a, float b)
-  {
+  static float static_add(float a, float b) {
     std::cout << "static add a=" << a << " b=" << b << '\n';
     return a + b;
   }
 };
 
 int
-main(int argc, char* argv[])
-{
+main(int argc, char* argv[]) {
   using Type = dfe::Variable::Type;
   using dfe::Dispatcher;
 

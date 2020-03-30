@@ -27,14 +27,12 @@ struct Data {
 };
 
 std::string
-make_path(std::string extension)
-{
+make_path(std::string extension) {
   return "example" + extension;
 }
 
 void
-write_files()
-{
+write_files() {
   // text writers
   dfe::NamedTupleCsvWriter<Data> csv(make_path(".csv"));
   dfe::NamedTupleTsvWriter<Data> tsv(make_path(".tsv"));
@@ -73,8 +71,7 @@ write_files()
 }
 
 void
-read_file_csv()
-{
+read_file_csv() {
   dfe::NamedTupleCsvReader<Data> reader(make_path(".csv"));
   Data x;
 
@@ -86,8 +83,7 @@ read_file_csv()
 }
 
 int
-main(int argc, char* argv[])
-{
+main(int argc, char* argv[]) {
   write_files();
   read_file_csv();
   return EXIT_SUCCESS;

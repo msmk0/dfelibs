@@ -10,8 +10,7 @@
 
 BOOST_TEST_DONT_PRINT_LOG_VALUE(Record::Tuple)
 
-BOOST_AUTO_TEST_CASE(namedtuple_tuple_helpers)
-{
+BOOST_AUTO_TEST_CASE(namedtuple_tuple_helpers) {
   using std::tuple_element_t;
   using std::tuple_size;
   using Tuple = Record::Tuple;
@@ -26,8 +25,7 @@ BOOST_AUTO_TEST_CASE(namedtuple_tuple_helpers)
   BOOST_TEST((std::is_same<tuple_element_t<6, Tuple>, bool>::value));
 }
 
-BOOST_AUTO_TEST_CASE(namedtuple_names)
-{
+BOOST_AUTO_TEST_CASE(namedtuple_names) {
   auto example = make_record(123);
   BOOST_TEST(example.names().size() == 7);
   BOOST_TEST(example.names().at(0) == "x");
@@ -39,8 +37,7 @@ BOOST_AUTO_TEST_CASE(namedtuple_names)
   BOOST_TEST(example.names().at(6) == "d");
 }
 
-BOOST_AUTO_TEST_CASE(nametuple_assign_from_tuple)
-{
+BOOST_AUTO_TEST_CASE(nametuple_assign_from_tuple) {
   // check default values
   Record r;
   BOOST_TEST(r.x == 0);
@@ -61,8 +58,7 @@ BOOST_AUTO_TEST_CASE(nametuple_assign_from_tuple)
   BOOST_TEST(r.d);
 }
 
-BOOST_AUTO_TEST_CASE(namedtuple_assign_to_tuple)
-{
+BOOST_AUTO_TEST_CASE(namedtuple_assign_to_tuple) {
   using std::get;
 
   // assign regular tuple from namedtuple w/ default values
@@ -86,8 +82,7 @@ BOOST_AUTO_TEST_CASE(namedtuple_assign_to_tuple)
   BOOST_TEST(get<6>(t) == cmp.d);
 }
 
-BOOST_AUTO_TEST_CASE(namedtuple_get)
-{
+BOOST_AUTO_TEST_CASE(namedtuple_get) {
   using std::get;
 
   auto r = make_record(42);
@@ -100,8 +95,7 @@ BOOST_AUTO_TEST_CASE(namedtuple_get)
   BOOST_TEST(r.d == get<6>(r));
 }
 
-BOOST_AUTO_TEST_CASE(namedtuple_get_assign)
-{
+BOOST_AUTO_TEST_CASE(namedtuple_get_assign) {
   using std::get;
 
   auto r = make_record(42);

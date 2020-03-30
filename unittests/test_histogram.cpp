@@ -12,8 +12,7 @@
 
 using dfe::histogram_impl::NArray;
 
-BOOST_AUTO_TEST_CASE(histogram_narray2f_init)
-{
+BOOST_AUTO_TEST_CASE(histogram_narray2f_init) {
   NArray<float, 2> s({10, 9}, 0.0f);
 
   BOOST_TEST(s.size().size() == 2);
@@ -28,8 +27,7 @@ BOOST_AUTO_TEST_CASE(histogram_narray2f_init)
   }
 }
 
-BOOST_AUTO_TEST_CASE(histogram_narray2f_at)
-{
+BOOST_AUTO_TEST_CASE(histogram_narray2f_at) {
   NArray<float, 2> s({10, 9}, 12.0f);
 
   BOOST_TEST(s.at({0, 0}) == 12.0f);
@@ -41,8 +39,7 @@ BOOST_AUTO_TEST_CASE(histogram_narray2f_at)
   BOOST_CHECK_THROW(s.at({10, 9}), std::out_of_range);
 }
 
-BOOST_AUTO_TEST_CASE(histogram_narray3f_init)
-{
+BOOST_AUTO_TEST_CASE(histogram_narray3f_init) {
   NArray<float, 3> s({10, 9, 8}, 23.0f);
 
   BOOST_TEST(s.size().size() == 3);
@@ -62,8 +59,7 @@ BOOST_AUTO_TEST_CASE(histogram_narray3f_init)
 
 // histogram tests
 
-BOOST_AUTO_TEST_CASE(histogram_uniform1)
-{
+BOOST_AUTO_TEST_CASE(histogram_uniform1) {
   using H1 = dfe::Histogram<double, dfe::UniformAxis<double>>;
 
   H1 h({0.0, 1.0, 8});
@@ -71,10 +67,10 @@ BOOST_AUTO_TEST_CASE(histogram_uniform1)
   // upper boundary is alway exclusive
   BOOST_CHECK_THROW(h.fill(1.0), std::out_of_range);
   // lower boundary is inclusive
-  BOOST_CHECK_NO_THROW(h.fill(0.0));   // bin 0 lower edge
+  BOOST_CHECK_NO_THROW(h.fill(0.0)); // bin 0 lower edge
   BOOST_CHECK_NO_THROW(h.fill(0.125)); // bin 1 lower edge
-  BOOST_CHECK_NO_THROW(h.fill(0.2));   // bin 1 inside
-  BOOST_CHECK_NO_THROW(h.fill(0.25));  // bin 2 lower edge
+  BOOST_CHECK_NO_THROW(h.fill(0.2)); // bin 1 inside
+  BOOST_CHECK_NO_THROW(h.fill(0.25)); // bin 2 lower edge
   BOOST_CHECK_NO_THROW(h.fill(0.99));
   BOOST_TEST(h.value({0}) == 1);
   BOOST_TEST(h.value({1}) == 2);
@@ -86,8 +82,7 @@ BOOST_AUTO_TEST_CASE(histogram_uniform1)
   BOOST_TEST(h.value({7}) == 1);
 }
 
-BOOST_AUTO_TEST_CASE(histogram_uniform2f)
-{
+BOOST_AUTO_TEST_CASE(histogram_uniform2f) {
   using H2 =
     dfe::Histogram<double, dfe::UniformAxis<double>, dfe::UniformAxis<double>>;
 
@@ -121,8 +116,7 @@ BOOST_AUTO_TEST_CASE(histogram_uniform2f)
   BOOST_TEST(h.value({3, 3}) == 0);
 }
 
-BOOST_AUTO_TEST_CASE(histogram_overflow1)
-{
+BOOST_AUTO_TEST_CASE(histogram_overflow1) {
   using H1 = dfe::Histogram<double, dfe::OverflowAxis<double>>;
 
   H1 h({0.0, 1.0, 8});
@@ -134,10 +128,10 @@ BOOST_AUTO_TEST_CASE(histogram_overflow1)
   BOOST_CHECK_NO_THROW(h.fill(1.0));
   BOOST_CHECK_NO_THROW(h.fill(1.2));
   // lower boundary is inclusive
-  BOOST_CHECK_NO_THROW(h.fill(0.0));   // bin 0 lower edge
+  BOOST_CHECK_NO_THROW(h.fill(0.0)); // bin 0 lower edge
   BOOST_CHECK_NO_THROW(h.fill(0.125)); // bin 1 lower edge
-  BOOST_CHECK_NO_THROW(h.fill(0.2));   // bin 1 inside
-  BOOST_CHECK_NO_THROW(h.fill(0.25));  // bin 2 lower edge
+  BOOST_CHECK_NO_THROW(h.fill(0.2)); // bin 1 inside
+  BOOST_CHECK_NO_THROW(h.fill(0.25)); // bin 2 lower edge
   BOOST_CHECK_NO_THROW(h.fill(0.99));
   BOOST_TEST(h.value({0}) == 2); // underflow
   BOOST_TEST(h.value({1}) == 1);
@@ -151,8 +145,7 @@ BOOST_AUTO_TEST_CASE(histogram_overflow1)
   BOOST_TEST(h.value({9}) == 4); // overflow
 }
 
-BOOST_AUTO_TEST_CASE(histogram_variable1d)
-{
+BOOST_AUTO_TEST_CASE(histogram_variable1d) {
   using H1 = dfe::Histogram<double, dfe::VariableAxis<double>>;
 
   // not enough edges

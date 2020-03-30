@@ -45,46 +45,20 @@ public:
   /// Supported value types.
   enum class Type { Empty, Boolean, Integer, Float, String };
 
-  Variable()
-    : m_type(Type::Empty)
-  {
-  }
+  Variable() : m_type(Type::Empty) {}
   Variable(Variable&& v) { *this = std::move(v); }
   Variable(const Variable& v) { *this = v; }
   explicit Variable(std::string&& s)
-    : m_string(std::move(s))
-    , m_type(Type::String)
-  {
-  }
-  explicit Variable(const std::string& s)
-    : Variable(std::string(s))
-  {
-  }
-  explicit Variable(const char* s)
-    : Variable(std::string(s))
-  {
-  }
+    : m_string(std::move(s)), m_type(Type::String) {}
+  explicit Variable(const std::string& s) : Variable(std::string(s)) {}
+  explicit Variable(const char* s) : Variable(std::string(s)) {}
   // suppport all possible integer types
   template<typename I, typename = std::enable_if_t<std::is_integral<I>::value>>
   explicit Variable(I integer)
-    : m_integer(static_cast<int64_t>(integer))
-    , m_type(Type::Integer)
-  {
-  }
-  explicit Variable(double d)
-    : m_float(d)
-    , m_type(Type::Float)
-  {
-  }
-  explicit Variable(float f)
-    : Variable(static_cast<double>(f))
-  {
-  }
-  explicit Variable(bool b)
-    : m_boolean(b)
-    , m_type(Type::Boolean)
-  {
-  }
+    : m_integer(static_cast<int64_t>(integer)), m_type(Type::Integer) {}
+  explicit Variable(double d) : m_float(d), m_type(Type::Float) {}
+  explicit Variable(float f) : Variable(static_cast<double>(f)) {}
+  explicit Variable(bool b) : m_boolean(b), m_type(Type::Boolean) {}
   ~Variable() = default;
 
   Variable& operator=(Variable&& v);
@@ -185,8 +159,7 @@ private:
 // implementation Variable
 
 inline Variable
-Variable::parse_as(const std::string& str, Type type)
-{
+Variable::parse_as(const std::string& str, Type type) {
   if (type == Type::Boolean) {
     return Variable((str == "true"));
   } else if (type == Type::Integer) {
@@ -201,8 +174,7 @@ Variable::parse_as(const std::string& str, Type type)
 }
 
 inline std::ostream&
-operator<<(std::ostream& os, const Variable& v)
-{
+operator<<(std::ostream& os, const Variable& v) {
   if (v.type() == Variable::Type::Boolean) {
     os << (v.m_boolean ? "true" : "false");
   } else if (v.m_type == Variable::Type::Integer) {
@@ -216,10 +188,11 @@ operator<<(std::ostream& os, const Variable& v)
 }
 
 inline Variable&
-Variable::operator=(Variable&& v)
-{
+Variable::operator=(Variable&& v) {
   // handle `x = std::move(x)`
-  if (this == &v) { return *this; }
+  if (this == &v) {
+    return *this;
+  }
   if (v.m_type == Type::Boolean) {
     m_boolean = v.m_boolean;
   } else if (v.m_type == Type::Integer) {
@@ -234,8 +207,7 @@ Variable::operator=(Variable&& v)
 }
 
 inline Variable&
-Variable::operator=(const Variable& v)
-{
+Variable::operator=(const Variable& v) {
   if (v.m_type == Type::Boolean) {
     m_boolean = v.m_boolean;
   } else if (v.m_type == Type::Integer) {
@@ -257,8 +229,7 @@ struct Variable::Converter<bool> {
 template<>
 struct Variable::Converter<float> {
   static constexpr Type type() { return Type::Float; }
-  static constexpr float as_t(const Variable& v)
-  {
+  static constexpr float as_t(const Variable& v) {
     return static_cast<float>(v.m_float);
   }
 };
@@ -270,48 +241,37 @@ struct Variable::Converter<double> {
 template<>
 struct Variable::Converter<std::string> {
   static constexpr Type type() { return Type::String; }
-  static constexpr const std::string& as_t(const Variable& v)
-  {
+  static constexpr const std::string& as_t(const Variable& v) {
     return v.m_string;
   }
 };
 template<typename I>
 struct Variable::IntegerConverter {
   static constexpr Type type() { return Type::Integer; }
-  static constexpr I as_t(const Variable& v)
-  {
+  static constexpr I as_t(const Variable& v) {
     return static_cast<I>(v.m_integer);
   }
 };
 template<>
-struct Variable::Converter<int8_t> : Variable::IntegerConverter<int8_t> {
-};
+struct Variable::Converter<int8_t> : Variable::IntegerConverter<int8_t> {};
 template<>
-struct Variable::Converter<int16_t> : Variable::IntegerConverter<int16_t> {
-};
+struct Variable::Converter<int16_t> : Variable::IntegerConverter<int16_t> {};
 template<>
-struct Variable::Converter<int32_t> : Variable::IntegerConverter<int32_t> {
-};
+struct Variable::Converter<int32_t> : Variable::IntegerConverter<int32_t> {};
 template<>
-struct Variable::Converter<int64_t> : Variable::IntegerConverter<int64_t> {
-};
+struct Variable::Converter<int64_t> : Variable::IntegerConverter<int64_t> {};
 template<>
-struct Variable::Converter<uint8_t> : Variable::IntegerConverter<uint8_t> {
-};
+struct Variable::Converter<uint8_t> : Variable::IntegerConverter<uint8_t> {};
 template<>
-struct Variable::Converter<uint16_t> : Variable::IntegerConverter<uint16_t> {
-};
+struct Variable::Converter<uint16_t> : Variable::IntegerConverter<uint16_t> {};
 template<>
-struct Variable::Converter<uint32_t> : Variable::IntegerConverter<uint32_t> {
-};
+struct Variable::Converter<uint32_t> : Variable::IntegerConverter<uint32_t> {};
 template<>
-struct Variable::Converter<uint64_t> : Variable::IntegerConverter<uint64_t> {
-};
+struct Variable::Converter<uint64_t> : Variable::IntegerConverter<uint64_t> {};
 
 template<typename T>
 inline auto
-Variable::as() const
-{
+Variable::as() const {
   if (m_type != Variable::Converter<T>::type()) {
     throw std::invalid_argument(
       "Requested type is incompatible with stored type");
@@ -329,13 +289,11 @@ template<typename R, typename... Args>
 struct InterfaceWrappper {
   std::function<R(Args...)> func;
 
-  Variable operator()(const std::vector<Variable>& args)
-  {
+  Variable operator()(const std::vector<Variable>& args) {
     return call(args, std::index_sequence_for<Args...>());
   }
   template<std::size_t... I>
-  Variable call(const std::vector<Variable>& args, std::index_sequence<I...>)
-  {
+  Variable call(const std::vector<Variable>& args, std::index_sequence<I...>) {
     return Variable(func(args.at(I).as<typename std::decay_t<Args>>()...));
   }
 };
@@ -345,13 +303,11 @@ template<typename... Args>
 struct InterfaceWrappper<void, Args...> {
   std::function<void(Args...)> func;
 
-  Variable operator()(const std::vector<Variable>& args)
-  {
+  Variable operator()(const std::vector<Variable>& args) {
     return call(args, std::index_sequence_for<Args...>());
   }
   template<std::size_t... I>
-  Variable call(const std::vector<Variable>& args, std::index_sequence<I...>)
-  {
+  Variable call(const std::vector<Variable>& args, std::index_sequence<I...>) {
     func(args.at(I).as<typename std::decay_t<Args>>()...);
     return Variable();
   }
@@ -359,15 +315,13 @@ struct InterfaceWrappper<void, Args...> {
 
 template<typename R, typename... Args>
 inline Dispatcher::Interface
-make_wrapper(std::function<R(Args...)>&& function)
-{
+make_wrapper(std::function<R(Args...)>&& function) {
   return InterfaceWrappper<R, Args...>{std::move(function)};
 }
 
 template<typename R, typename... Args>
 std::vector<Variable::Type>
-make_types(const std::function<R(Args...)>&)
-{
+make_types(const std::function<R(Args...)>&) {
   return {Variable(std::decay_t<Args>()).type()...};
 }
 
@@ -377,8 +331,7 @@ make_types(const std::function<R(Args...)>&)
 inline void
 Dispatcher::add(
   std::string name, Dispatcher::Interface&& func,
-  std::vector<Variable::Type>&& arg_types, std::string help)
-{
+  std::vector<Variable::Type>&& arg_types, std::string help) {
   if (name.empty()) {
     throw std::invalid_argument("Can not register command with empty name");
   }
@@ -393,8 +346,7 @@ Dispatcher::add(
 template<typename R, typename... Args>
 inline void
 Dispatcher::add(
-  std::string name, std::function<R(Args...)>&& func, std::string help)
-{
+  std::string name, std::function<R(Args...)>&& func, std::string help) {
   auto args = dispatcher_impl::make_types(func);
   add(
     std::move(name), dispatcher_impl::make_wrapper(std::move(func)),
@@ -403,8 +355,7 @@ Dispatcher::add(
 
 template<typename R, typename... Args>
 inline void
-Dispatcher::add(std::string name, R (*func)(Args...), std::string help)
-{
+Dispatcher::add(std::string name, R (*func)(Args...), std::string help) {
   assert(func && "Function pointer must be non-null");
   add(std::move(name), std::function<R(Args...)>(func), std::move(help));
 }
@@ -412,8 +363,7 @@ Dispatcher::add(std::string name, R (*func)(Args...), std::string help)
 template<typename T, typename R, typename... Args>
 inline void
 Dispatcher::add(
-  std::string name, R (T::*member_func)(Args...), T* t, std::string help)
-{
+  std::string name, R (T::*member_func)(Args...), T* t, std::string help) {
   assert(member_func && "Member function pointer must be non-null");
   assert(t && "Object pointer must be non-null");
   add(
@@ -425,8 +375,7 @@ Dispatcher::add(
 
 inline Variable
 Dispatcher::call_native(
-  const std::string& name, const std::vector<Variable>& args)
-{
+  const std::string& name, const std::vector<Variable>& args) {
   auto cmd = m_commands.find(name);
   if (cmd == m_commands.end()) {
     throw std::invalid_argument("Unknown command '" + name + "'");
@@ -439,8 +388,7 @@ Dispatcher::call_native(
 
 inline Variable
 Dispatcher::call_parsed(
-  const std::string& name, const std::vector<std::string>& args)
-{
+  const std::string& name, const std::vector<std::string>& args) {
   // dont reuse call_native since we need to have access to the command anyways
   auto cmd = m_commands.find(name);
   if (cmd == m_commands.end()) {
@@ -459,24 +407,23 @@ Dispatcher::call_parsed(
 
 template<typename... Args>
 inline Variable
-Dispatcher::call(const std::string& name, Args&&... args)
-{
+Dispatcher::call(const std::string& name, Args&&... args) {
   return call_native(
     name, std::vector<Variable>{Variable(std::forward<Args>(args))...});
 }
 
 inline std::vector<std::string>
-Dispatcher::commands() const
-{
+Dispatcher::commands() const {
   std::vector<std::string> cmds;
 
-  for (const auto& cmd : m_commands) { cmds.emplace_back(cmd.first); }
+  for (const auto& cmd : m_commands) {
+    cmds.emplace_back(cmd.first);
+  }
   return cmds;
 }
 
 inline const std::string&
-Dispatcher::help(const std::string& name) const
-{
+Dispatcher::help(const std::string& name) const {
   return m_commands.at(name).help;
 }
 

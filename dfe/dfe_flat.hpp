@@ -111,8 +111,7 @@ public:
   /// Writable access to an element or throw if it does not exists.
   value_type& at(const Key& key) { return m_items[m_keys.at(key).index]; }
   /// Read-only access to an element or throw if it does not exists.
-  const value_type& at(const Key& key) const
-  {
+  const value_type& at(const Key& key) const {
     return m_items[m_keys.at(key).index];
   }
 
@@ -139,16 +138,13 @@ private:
     size_type index;
   };
   struct KeyCompare {
-    constexpr bool operator()(const KeyIndex& lhs, const KeyIndex& rhs) const
-    {
+    constexpr bool operator()(const KeyIndex& lhs, const KeyIndex& rhs) const {
       return Compare()(lhs.key, rhs.key);
     }
-    constexpr bool operator()(const KeyIndex& lhs, const Key& rhs_key) const
-    {
+    constexpr bool operator()(const KeyIndex& lhs, const Key& rhs_key) const {
       return Compare()(lhs.key, rhs_key);
     }
-    constexpr bool operator()(const Key& lhs_key, const KeyIndex& rhs) const
-    {
+    constexpr bool operator()(const Key& lhs_key, const KeyIndex& rhs) const {
       return Compare()(lhs_key, rhs.key);
     }
   };
@@ -162,8 +158,7 @@ private:
 template<typename T, typename Compare, typename Container>
 template<typename U>
 inline const typename FlatSet<T, Compare, Container>::value_type&
-FlatSet<T, Compare, Container>::at(U&& u) const
-{
+FlatSet<T, Compare, Container>::at(U&& u) const {
   auto pos = find(std::forward<U>(u));
   if (pos == end()) {
     throw std::out_of_range("The requested element does not exists");
@@ -173,8 +168,7 @@ FlatSet<T, Compare, Container>::at(U&& u) const
 
 template<typename T, typename Compare, typename Container>
 inline void
-FlatSet<T, Compare, Container>::insert_or_assign(const T& t)
-{
+FlatSet<T, Compare, Container>::insert_or_assign(const T& t) {
   auto pos = std::lower_bound(m_items.begin(), m_items.end(), t, Compare());
   if (((pos != m_items.end()) and !Compare()(t, *pos))) {
     *pos = t;
@@ -186,8 +180,7 @@ FlatSet<T, Compare, Container>::insert_or_assign(const T& t)
 template<typename T, typename Compare, typename Container>
 template<typename U>
 inline typename FlatSet<T, Compare, Container>::const_iterator
-FlatSet<T, Compare, Container>::find(U&& u) const
-{
+FlatSet<T, Compare, Container>::find(U&& u) const {
   auto end = m_items.end();
   auto pos =
     std::lower_bound(m_items.begin(), end, std::forward<U>(u), Compare());
@@ -197,8 +190,7 @@ FlatSet<T, Compare, Container>::find(U&& u) const
 template<typename T, typename Compare, typename Container>
 template<typename U>
 inline bool
-FlatSet<T, Compare, Container>::contains(U&& u) const
-{
+FlatSet<T, Compare, Container>::contains(U&& u) const {
   return std::binary_search(
     m_items.begin(), m_items.end(), std::forward<U>(u), Compare());
 }
@@ -208,8 +200,7 @@ FlatSet<T, Compare, Container>::contains(U&& u) const
 template<typename Key, typename T, typename Compare>
 template<typename... Params>
 inline void
-FlatMap<Key, T, Compare>::emplace(const Key& key, Params&&... params)
-{
+FlatMap<Key, T, Compare>::emplace(const Key& key, Params&&... params) {
   auto idx = m_keys.find(key);
   if (idx != m_keys.end()) {
     m_items[idx->index] = T(std::forward<Params>(params)...);

@@ -79,8 +79,8 @@ private:
   // enable_if to prevent this overload to be used for std::vector<T> as well
   template<typename T>
   static std::enable_if_t<
-    std::is_arithmetic<std::decay_t<T>>::value or
-      std::is_convertible<T, std::string>::value,
+    std::is_arithmetic<std::decay_t<T>>::value
+      or std::is_convertible<T, std::string>::value,
     unsigned>
   write(T&& x, std::ostream& os);
   template<typename T, typename Allocator>
@@ -136,13 +136,10 @@ public:
   NamedTupleDsvWriter(
     const std::string& path,
     int precision = std::numeric_limits<double>::max_digits10)
-    : m_writer(colum_names(), path, precision)
-  {
-  }
+    : m_writer(colum_names(), path, precision) {}
 
   /// Append a record to the file.
-  void append(const NamedTuple& record)
-  {
+  void append(const NamedTuple& record) {
     append_impl(
       record, std::make_index_sequence<
                 std::tuple_size<typename NamedTuple::Tuple>::value>{});
@@ -151,14 +148,12 @@ public:
 private:
   DsvWriter<Delimiter> m_writer;
 
-  static std::vector<std::string> colum_names()
-  {
+  static std::vector<std::string> colum_names() {
     const auto& from_record = NamedTuple::names();
     return {from_record.begin(), from_record.end()};
   }
   template<std::size_t... I>
-  void append_impl(const NamedTuple& values, std::index_sequence<I...>)
-  {
+  void append_impl(const NamedTuple& values, std::index_sequence<I...>) {
     using std::get;
     m_writer.append(get<I>(values)...);
   }
@@ -168,8 +163,7 @@ private:
 
 template<typename T>
 static void
-parse(const std::string& str, T& value)
-{
+parse(const std::string& str, T& value) {
   // TODO use somthing w/ lower overhead then stringstream e.g. std::from_chars
   std::istringstream is(str);
   is >> value;
@@ -246,15 +240,13 @@ private:
   void use_default_columns();
   void parse_header(const std::vector<std::string>& optional_columns);
   template<std::size_t... I>
-  void parse_record(NamedTuple& record, std::index_sequence<I...>) const
-  {
+  void parse_record(NamedTuple& record, std::index_sequence<I...>) const {
     // see namedtuple_impl::print_tuple for explanation
     // allow different column ordering on file and optional columns
     (void)(int[]){0, (parse_element<I>(record), 0)...};
   }
   template<std::size_t I>
-  void parse_element(NamedTuple& record) const
-  {
+  void parse_element(NamedTuple& record) const {
     using std::get;
     if (m_tuple_column_map[I] != SIZE_MAX) {
       parse(m_columns[m_tuple_column_map[I]], get<I>(record));
@@ -269,9 +261,8 @@ inline DsvWriter<Delimiter>::DsvWriter(
   const std::vector<std::string>& columns, const std::string& path,
   int precision)
   : m_file(
-      path, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc)
-  , m_num_columns(columns.size())
-{
+    path, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc)
+  , m_num_columns(columns.size()) {
   if (not m_file.is_open() or m_file.fail()) {
     throw std::runtime_error("Could not open file '" + path + "'");
   }
@@ -286,8 +277,7 @@ inline DsvWriter<Delimiter>::DsvWriter(
 template<char Delimiter>
 template<typename Arg0, typename... Args>
 inline void
-DsvWriter<Delimiter>::append(Arg0&& arg0, Args&&... args)
-{
+DsvWriter<Delimiter>::append(Arg0&& arg0, Args&&... args) {
   // we can only check how many columns were written after they have been
   // written. write to temporary first to prevent bad data on file.
   std::stringstream line;
@@ -306,7 +296,9 @@ DsvWriter<Delimiter>::append(Arg0&& arg0, Args&&... args)
   line << '\n';
   // validate that the total number of written columns matches the specs.
   unsigned total_columns = 0;
-  for (auto nc : written_columns) { total_columns += nc; }
+  for (auto nc : written_columns) {
+    total_columns += nc;
+  }
   if (total_columns < m_num_columns) {
     throw std::invalid_argument("Not enough columns");
   }
@@ -323,11 +315,10 @@ DsvWriter<Delimiter>::append(Arg0&& arg0, Args&&... args)
 template<char Delimiter>
 template<typename T>
 inline std::enable_if_t<
-  std::is_arithmetic<std::decay_t<T>>::value or
-    std::is_convertible<T, std::string>::value,
+  std::is_arithmetic<std::decay_t<T>>::value
+    or std::is_convertible<T, std::string>::value,
   unsigned>
-DsvWriter<Delimiter>::write(T&& x, std::ostream& os)
-{
+DsvWriter<Delimiter>::write(T&& x, std::ostream& os) {
   os << x;
   return 1u;
 }
@@ -336,11 +327,12 @@ template<char Delimiter>
 template<typename T, typename Allocator>
 inline unsigned
 DsvWriter<Delimiter>::write(
-  const std::vector<T, Allocator>& xs, std::ostream& os)
-{
+  const std::vector<T, Allocator>& xs, std::ostream& os) {
   unsigned n = 0;
   for (const auto& x : xs) {
-    if (0 < n) { os << Delimiter; }
+    if (0 < n) {
+      os << Delimiter;
+    }
     os << x;
     n += 1;
   }
@@ -351,8 +343,7 @@ DsvWriter<Delimiter>::write(
 
 template<char Delimiter>
 inline DsvReader<Delimiter>::DsvReader(const std::string& path)
-  : m_file(path, std::ios_base::binary | std::ios_base::in)
-{
+  : m_file(path, std::ios_base::binary | std::ios_base::in) {
   if (not m_file.is_open() or m_file.fail()) {
     throw std::runtime_error("Could not open file '" + path + "'");
   }
@@ -360,11 +351,12 @@ inline DsvReader<Delimiter>::DsvReader(const std::string& path)
 
 template<char Delimiter>
 inline bool
-DsvReader<Delimiter>::read(std::vector<std::string>& columns)
-{
+DsvReader<Delimiter>::read(std::vector<std::string>& columns) {
   // read the next line and check for both end-of-file and errors
   std::getline(m_file, m_line);
-  if (m_file.eof()) { return false; }
+  if (m_file.eof()) {
+    return false;
+  }
   if (m_file.fail()) {
     throw std::runtime_error(
       "Could not read line " + std::to_string(m_num_lines));
@@ -394,8 +386,7 @@ template<char Delimiter, typename NamedTuple>
 inline NamedTupleDsvReader<Delimiter, NamedTuple>::NamedTupleDsvReader(
   const std::string& path, const std::vector<std::string>& optional_columns,
   bool verify_header)
-  : m_reader(path)
-{
+  : m_reader(path) {
   // optional columns only work if we verify the header
   if ((not optional_columns.empty()) and (not verify_header)) {
     throw std::runtime_error(
@@ -414,9 +405,10 @@ inline NamedTupleDsvReader<Delimiter, NamedTuple>::NamedTupleDsvReader(
 
 template<char Delimiter, typename NamedTuple>
 inline bool
-NamedTupleDsvReader<Delimiter, NamedTuple>::read(NamedTuple& record)
-{
-  if (not m_reader.read(m_columns)) { return false; }
+NamedTupleDsvReader<Delimiter, NamedTuple>::read(NamedTuple& record) {
+  if (not m_reader.read(m_columns)) {
+    return false;
+  }
   // check for consistent entries per-line
   if (m_columns.size() < m_num_columns) {
     throw std::runtime_error(
@@ -436,10 +428,11 @@ template<char Delimiter, typename NamedTuple>
 template<typename T>
 inline bool
 NamedTupleDsvReader<Delimiter, NamedTuple>::read(
-  NamedTuple& record, std::vector<T>& extra)
-{
+  NamedTuple& record, std::vector<T>& extra) {
   // parse columns belonging to the regular record
-  if (not read(record)) { return false; }
+  if (not read(record)) {
+    return false;
+  }
   // parse extra columns
   extra.resize(m_extra_columns.size());
   for (std::size_t i = 0; i < m_extra_columns.size(); ++i) {
@@ -450,8 +443,7 @@ NamedTupleDsvReader<Delimiter, NamedTuple>::read(
 
 template<char Delimiter, typename NamedTuple>
 inline void
-NamedTupleDsvReader<Delimiter, NamedTuple>::use_default_columns()
-{
+NamedTupleDsvReader<Delimiter, NamedTuple>::use_default_columns() {
   // assume row content is identical in content and order to the tuple
   m_num_columns = std::tuple_size<Tuple>::value;
   for (std::size_t i = 0; i < m_tuple_column_map.size(); ++i) {
@@ -464,8 +456,7 @@ NamedTupleDsvReader<Delimiter, NamedTuple>::use_default_columns()
 template<char Delimiter, typename NamedTuple>
 inline void
 NamedTupleDsvReader<Delimiter, NamedTuple>::parse_header(
-  const std::vector<std::string>& optional_columns)
-{
+  const std::vector<std::string>& optional_columns) {
   const auto& names = NamedTuple::names();
 
   // the number of header columns fixes the expected number of data columns
@@ -475,7 +466,9 @@ NamedTupleDsvReader<Delimiter, NamedTuple>::parse_header(
   for (const auto& name : names) {
     // no need to for availability if the column is optional
     auto o = std::find(optional_columns.begin(), optional_columns.end(), name);
-    if (o != optional_columns.end()) { continue; }
+    if (o != optional_columns.end()) {
+      continue;
+    }
     // missing, non-optional column mean we can not continue
     auto c = std::find(m_columns.begin(), m_columns.end(), name);
     if (c == m_columns.end()) {

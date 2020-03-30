@@ -23,8 +23,7 @@ struct Record {
 };
 
 Record
-make_record(size_t i)
-{
+make_record(size_t i) {
   Record r;
   r.x = i;
   r.y = -2 * i;

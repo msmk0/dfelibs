@@ -55,8 +55,7 @@ struct Record {
 };
 
 Record
-make_record(size_t i)
-{
+make_record(size_t i) {
   Record r;
   r.f = 0.234f * i;
   r.d = -0.234 * i;
@@ -94,8 +93,7 @@ make_record(size_t i)
 
 BOOST_TEST_DONT_PRINT_LOG_VALUE(Record::Tuple)
 
-BOOST_AUTO_TEST_CASE(root_namedtuple_write_read)
-{
+BOOST_AUTO_TEST_CASE(root_namedtuple_write_read) {
   // write some data
   {
     dfe::NamedTupleRootWriter<Record> writer("test.root", "records");

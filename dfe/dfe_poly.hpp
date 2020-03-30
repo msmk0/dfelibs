@@ -45,8 +45,7 @@ namespace dfe {
 ///
 template<typename T, typename Container>
 constexpr T
-polynomial_val(const T& x, const Container& coeffs)
-{
+polynomial_val(const T& x, const Container& coeffs) {
   // Use Horner's method to evaluate polynomial, i.e. expand
   //   f(x) = c0 + c1*x + c2*x^2 + c3*x^3
   // to the following form
@@ -76,8 +75,7 @@ polynomial_val(const T& x, const Container& coeffs)
 ///
 template<typename T, typename Container>
 constexpr std::pair<T, T>
-polynomial_valder(const T& x, const Container& coeffs)
-{
+polynomial_valder(const T& x, const Container& coeffs) {
   // Use Horner's method to evaluate polynomial and its derivative at the
   // same time
   T q = x; // make sure dynamic-sized types, e.g. std::valarray, work
@@ -103,32 +101,28 @@ polynomial_valder(const T& x, const Container& coeffs)
 ///
 template<typename T, typename Container>
 constexpr T
-polynomial_der(const T& x, const Container& coeffs)
-{
+polynomial_der(const T& x, const Container& coeffs) {
   return polynomial_valder(x, coeffs).second;
 }
 
 /// Evaluate a polynomial with an order fixed at compile time.
 template<typename T, typename U>
 constexpr auto
-polynomial_val(const T& x, std::initializer_list<U> coeffs)
-{
+polynomial_val(const T& x, std::initializer_list<U> coeffs) {
   return polynomial_val<T, std::initializer_list<U>>(x, coeffs);
 }
 
 /// Evaluate the derivative of a polynomial with an order fixed at compile time.
 template<typename T, typename U>
 constexpr auto
-polynomial_der(const T& x, std::initializer_list<U> coeffs)
-{
+polynomial_der(const T& x, std::initializer_list<U> coeffs) {
   return polynomial_der<T, std::initializer_list<U>>(x, coeffs);
 }
 
 /// Evaluate the derivative of a polynomial with an order fixed at compile time.
 template<typename T, typename U>
 constexpr auto
-polynomial_valder(const T& x, std::initializer_list<U> coeffs)
-{
+polynomial_valder(const T& x, std::initializer_list<U> coeffs) {
   return polynomial_valder<T, std::initializer_list<U>>(x, coeffs);
 }
 

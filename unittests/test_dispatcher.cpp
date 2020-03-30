@@ -14,13 +14,12 @@ using Type = dfe::Variable::Type;
 
 // test for variable type
 
-BOOST_AUTO_TEST_CASE(dispatcher_variable_empty)
-{
+BOOST_AUTO_TEST_CASE(dispatcher_variable_empty) {
   Variable empty;
 
   BOOST_CHECK(empty.type() == Type::Empty);
-  BOOST_CHECK_THROW(empty.as<bool>(), std::invalid_argument);   // wrong type
-  BOOST_CHECK_THROW(empty.as<int>(), std::invalid_argument);    // wrong type
+  BOOST_CHECK_THROW(empty.as<bool>(), std::invalid_argument); // wrong type
+  BOOST_CHECK_THROW(empty.as<int>(), std::invalid_argument); // wrong type
   BOOST_CHECK_THROW(empty.as<double>(), std::invalid_argument); // wrong type
   BOOST_CHECK_THROW(
     empty.as<std::string>(), std::invalid_argument); // wrong type
@@ -31,8 +30,7 @@ BOOST_AUTO_TEST_CASE(dispatcher_variable_empty)
   BOOST_TEST(empty.as<int>() == -23);
 }
 
-BOOST_AUTO_TEST_CASE(dispatcher_variable_bool)
-{
+BOOST_AUTO_TEST_CASE(dispatcher_variable_bool) {
   Variable vt(true);
   Variable vf(false);
 
@@ -41,11 +39,10 @@ BOOST_AUTO_TEST_CASE(dispatcher_variable_bool)
   BOOST_TEST(vt.as<bool>());
   BOOST_TEST(!vf.as<bool>());
   BOOST_CHECK_THROW(vt.as<double>(), std::invalid_argument); // wrong type
-  BOOST_CHECK_THROW(vf.as<int>(), std::invalid_argument);    // wrong type
+  BOOST_CHECK_THROW(vf.as<int>(), std::invalid_argument); // wrong type
 }
 
-BOOST_AUTO_TEST_CASE(dispatcher_variable_int)
-{
+BOOST_AUTO_TEST_CASE(dispatcher_variable_int) {
   Variable i1(-123);
 
   BOOST_CHECK(i1.type() == Type::Integer);
@@ -54,8 +51,7 @@ BOOST_AUTO_TEST_CASE(dispatcher_variable_int)
   BOOST_CHECK_THROW(i1.as<double>(), std::invalid_argument); // wrong type
 }
 
-BOOST_AUTO_TEST_CASE(dispatcher_variable_uint)
-{
+BOOST_AUTO_TEST_CASE(dispatcher_variable_uint) {
   Variable i1(123u);
 
   BOOST_CHECK(i1.type() == Type::Integer);
@@ -66,8 +62,7 @@ BOOST_AUTO_TEST_CASE(dispatcher_variable_uint)
   BOOST_CHECK_THROW(i1.as<float>(), std::invalid_argument); // wrong type
 }
 
-BOOST_AUTO_TEST_CASE(dispatcher_variable_float)
-{
+BOOST_AUTO_TEST_CASE(dispatcher_variable_float) {
   Variable f1(0.123f);
   Variable f2(-1.234e14f);
 
@@ -75,12 +70,11 @@ BOOST_AUTO_TEST_CASE(dispatcher_variable_float)
   BOOST_CHECK(f2.type() == Type::Float);
   BOOST_TEST(f1.as<float>() == 0.123f);
   BOOST_TEST(f2.as<float>() == -1.234e14f);
-  BOOST_CHECK_THROW(f1.as<int>(), std::invalid_argument);      // wrong type
+  BOOST_CHECK_THROW(f1.as<int>(), std::invalid_argument); // wrong type
   BOOST_CHECK_THROW(f2.as<uint64_t>(), std::invalid_argument); // wrong type
 }
 
-BOOST_AUTO_TEST_CASE(dispatcher_variable_double)
-{
+BOOST_AUTO_TEST_CASE(dispatcher_variable_double) {
   Variable d1(0.123);
   Variable d2(-1.234e14);
 
@@ -88,12 +82,11 @@ BOOST_AUTO_TEST_CASE(dispatcher_variable_double)
   BOOST_CHECK(d2.type() == Type::Float);
   BOOST_TEST(d1.as<double>() == 0.123);
   BOOST_TEST(d2.as<double>() == -1.234e14);
-  BOOST_CHECK_THROW(d1.as<bool>(), std::invalid_argument);        // wrong type
+  BOOST_CHECK_THROW(d1.as<bool>(), std::invalid_argument); // wrong type
   BOOST_CHECK_THROW(d2.as<std::string>(), std::invalid_argument); // wrong type
 }
 
-BOOST_AUTO_TEST_CASE(dispatcher_variable_chars)
-{
+BOOST_AUTO_TEST_CASE(dispatcher_variable_chars) {
   const char* cs = "test";
   const char* cl = "testTESTtestTESTtestTESTtestTEST";
   Variable vs(cs);
@@ -106,8 +99,7 @@ BOOST_AUTO_TEST_CASE(dispatcher_variable_chars)
   BOOST_CHECK_THROW(vs.as<bool>(), std::invalid_argument); // wrong type
 }
 
-BOOST_AUTO_TEST_CASE(dispatcher_variable_string)
-{
+BOOST_AUTO_TEST_CASE(dispatcher_variable_string) {
   std::string ss("axcvsd");
   std::string sl("asdf9asdfj;alcxv-1gasldkfjvb890basdf-0913");
   Variable vs(ss);
@@ -122,8 +114,7 @@ BOOST_AUTO_TEST_CASE(dispatcher_variable_string)
 
 // basic sanity checks
 
-BOOST_AUTO_TEST_CASE(dispatcher_add)
-{
+BOOST_AUTO_TEST_CASE(dispatcher_add) {
   Dispatcher dp;
   BOOST_CHECK_THROW(
     dp.add("", nullptr, {Type::Boolean}),
@@ -134,30 +125,29 @@ BOOST_AUTO_TEST_CASE(dispatcher_add)
     std::invalid_argument); // duplicate name
 }
 
-BOOST_AUTO_TEST_CASE(dispatcher_call)
-{
+BOOST_AUTO_TEST_CASE(dispatcher_call) {
   Dispatcher dp;
   BOOST_REQUIRE_NO_THROW(
     dp.add("invalid1", nullptr, {Type::Integer, Type::Boolean}));
   BOOST_REQUIRE_NO_THROW(
     dp.add("invalid2", nullptr, {Type::Integer, Type::Boolean}));
   BOOST_CHECK_THROW(dp.call("does-not-exist"), std::invalid_argument);
-  BOOST_CHECK_THROW(dp.call("invalid1"), std::invalid_argument);      // nargs
+  BOOST_CHECK_THROW(dp.call("invalid1"), std::invalid_argument); // nargs
   BOOST_CHECK_THROW(dp.call("invalid2", "x"), std::invalid_argument); // nargs
 }
 
 // native dispatcher interface functions
 
 Variable
-native(const std::vector<Variable>& args)
-{
+native(const std::vector<Variable>& args) {
   std::string ret;
-  for (const auto& arg : args) { ret += arg.as<std::string>(); }
+  for (const auto& arg : args) {
+    ret += arg.as<std::string>();
+  }
   return Variable(ret);
 }
 
-BOOST_AUTO_TEST_CASE(dispatcher_native)
-{
+BOOST_AUTO_TEST_CASE(dispatcher_native) {
   Dispatcher dp;
   BOOST_REQUIRE_NO_THROW(dp.add("native1", native, {Type::String}));
   BOOST_REQUIRE_NO_THROW(
@@ -175,20 +165,18 @@ BOOST_AUTO_TEST_CASE(dispatcher_native)
   BOOST_TEST(
     dp.call_parsed("native3", {"x", "y", "z"}).as<std::string>() == "xyz");
   BOOST_TEST(
-    dp.call_parsed("native5", {"x", "y", "z", "1", "2"}).as<std::string>() ==
-    "xyz12");
+    dp.call_parsed("native5", {"x", "y", "z", "1", "2"}).as<std::string>()
+    == "xyz12");
 }
 
 // regular function
 
 double
-func(int i, float f)
-{
+func(int i, float f) {
   return i * f;
 }
 
-BOOST_AUTO_TEST_CASE(dispatcher_free)
-{
+BOOST_AUTO_TEST_CASE(dispatcher_free) {
   dfe::Dispatcher dp;
   BOOST_REQUIRE_NO_THROW(dp.add("func", func));
   BOOST_TEST(dp.call("func", 2, 2.6).as<float>() == 5.2f);
@@ -200,13 +188,11 @@ BOOST_AUTO_TEST_CASE(dispatcher_free)
 // regular function without return value
 
 void
-func_noreturn(const std::string& a, std::string b)
-{
+func_noreturn(const std::string& a, std::string b) {
   std::cout << a << "+" << b << std::endl;
 }
 
-BOOST_AUTO_TEST_CASE(dispatcher_free_noreturn)
-{
+BOOST_AUTO_TEST_CASE(dispatcher_free_noreturn) {
   dfe::Dispatcher dp;
   BOOST_REQUIRE_NO_THROW(dp.add("func", func_noreturn));
   // check for empty return variable
@@ -225,8 +211,7 @@ struct FuncStruct {
   void noreturn(float f) { std::cout << (i * f) << std::endl; }
 };
 
-BOOST_AUTO_TEST_CASE(dispatcher_member)
-{
+BOOST_AUTO_TEST_CASE(dispatcher_member) {
   dfe::Dispatcher dp;
   FuncStruct f = {4};
   BOOST_REQUIRE_NO_THROW(dp.add("func", &FuncStruct::func, &f));

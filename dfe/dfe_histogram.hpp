@@ -166,8 +166,7 @@ public:
   ///
   /// \param values
   /// \param weight Associated weight, the default of 1 just counts entries.
-  void fill(typename Axes::Value... values, T weight = static_cast<T>(1))
-  {
+  void fill(typename Axes::Value... values, T weight = static_cast<T>(1)) {
     // TODO 2018-11-28 how to typedef parameter pack Axes::Value...?
     m_data[index(std::index_sequence_for<Axes...>(), values...)] += weight;
   }
@@ -175,8 +174,7 @@ public:
 private:
   template<std::size_t... Is>
   constexpr Index index(
-    std::index_sequence<Is...>, typename Axes::Value... values) const
-  {
+    std::index_sequence<Is...>, typename Axes::Value... values) const {
     return Index{std::get<Is>(m_axes).index(values)...};
   }
 
@@ -200,15 +198,12 @@ inline histogram_impl::NArray<T, NDimensions>::NArray(
       std::accumulate(
         size.begin(), size.end(), static_cast<std::size_t>(1),
         std::multiplies<std::size_t>()),
-      value)
-{
-}
+      value) {}
 
 // construct linear column-major index from n-dimensional index
 template<typename T, std::size_t NDimensions>
 constexpr std::size_t
-histogram_impl::NArray<T, NDimensions>::linear(Index idx) const
-{
+histogram_impl::NArray<T, NDimensions>::linear(Index idx) const {
   std::size_t result = 0;
   std::size_t step = 1;
   for (std::size_t i = 0; i < NDimensions; ++i) {
@@ -220,18 +215,18 @@ histogram_impl::NArray<T, NDimensions>::linear(Index idx) const
 
 template<typename T, std::size_t NDimensions>
 constexpr bool
-histogram_impl::NArray<T, NDimensions>::within_bounds(Index idx) const
-{
+histogram_impl::NArray<T, NDimensions>::within_bounds(Index idx) const {
   for (std::size_t i = 0; i < NDimensions; ++i) {
-    if (m_size[i] <= idx[i]) { return false; }
+    if (m_size[i] <= idx[i]) {
+      return false;
+    }
   }
   return true;
 }
 
 template<typename T, std::size_t NDimensions>
 inline const T&
-histogram_impl::NArray<T, NDimensions>::at(Index idx) const
-{
+histogram_impl::NArray<T, NDimensions>::at(Index idx) const {
   if (!within_bounds(idx)) {
     throw std::out_of_range("NArray index is out of valid range");
   }
@@ -240,8 +235,7 @@ histogram_impl::NArray<T, NDimensions>::at(Index idx) const
 
 template<typename T, std::size_t NDimensions>
 inline T&
-histogram_impl::NArray<T, NDimensions>::at(Index idx)
-{
+histogram_impl::NArray<T, NDimensions>::at(Index idx) {
   if (!within_bounds(idx)) {
     throw std::out_of_range("NArray index is out of valid range");
   }
@@ -252,16 +246,11 @@ histogram_impl::NArray<T, NDimensions>::at(Index idx)
 
 template<typename T>
 inline UniformAxis<T>::UniformAxis(T lower, T upper, std::size_t nbins)
-  : m_nbins(nbins)
-  , m_lower(lower)
-  , m_upper(upper)
-{
-}
+  : m_nbins(nbins), m_lower(lower), m_upper(upper) {}
 
 template<typename T>
 inline std::size_t
-UniformAxis<T>::index(T value) const
-{
+UniformAxis<T>::index(T value) const {
   if (value < this->m_lower) {
     throw std::out_of_range("Value is smaller than lower axis limit");
   }
@@ -278,29 +267,28 @@ UniformAxis<T>::index(T value) const
 template<typename T>
 inline OverflowAxis<T>::OverflowAxis(
   Value lower, Value upper, std::size_t nbins)
-  : m_ndatabins(nbins)
-  , m_lower(lower)
-  , m_upper(upper)
-{
-}
+  : m_ndatabins(nbins), m_lower(lower), m_upper(upper) {}
 
 template<typename T>
 constexpr std::size_t
-OverflowAxis<T>::index(T value) const
-{
-  if (value < m_lower) { return 0; }
-  if (m_upper <= value) { return m_ndatabins + 1; }
+OverflowAxis<T>::index(T value) const {
+  if (value < m_lower) {
+    return 0;
+  }
+  if (m_upper <= value) {
+    return m_ndatabins + 1;
+  }
   // cast truncates to integer part; should work since index is always > 0.
-  return 1 + static_cast<std::size_t>(
-               m_ndatabins * (value - m_lower) / (m_upper - m_lower));
+  return 1
+         + static_cast<std::size_t>(
+           m_ndatabins * (value - m_lower) / (m_upper - m_lower));
 }
 
 // implementation VariableAxis
 
 template<typename T>
 inline VariableAxis<T>::VariableAxis(std::vector<Value>&& edges)
-  : m_edges(std::move(edges))
-{
+  : m_edges(std::move(edges)) {
   if (m_edges.size() < 2) {
     throw std::invalid_argument("Less than two bin edges");
   }
@@ -313,14 +301,11 @@ inline VariableAxis<T>::VariableAxis(std::vector<Value>&& edges)
 
 template<typename T>
 inline VariableAxis<T>::VariableAxis(std::initializer_list<Value> edges)
-  : VariableAxis(std::vector<Value>(edges))
-{
-}
+  : VariableAxis(std::vector<Value>(edges)) {}
 
 template<typename T>
 inline std::size_t
-VariableAxis<T>::index(T value) const
-{
+VariableAxis<T>::index(T value) const {
   // find upper edge of the corresponding bin
   auto it = std::upper_bound(m_edges.begin(), m_edges.end(), value);
   if (it == m_edges.begin()) {
@@ -338,8 +323,6 @@ template<typename T, typename... Axes>
 inline Histogram<T, Axes...>::Histogram(Axes&&... axes)
   // access nbins *before* moving the axes, otherwise the axes are invalid.
   : m_data(Index{axes.nbins()...}, static_cast<T>(0))
-  , m_axes(std::move(axes)...)
-{
-}
+  , m_axes(std::move(axes)...) {}
 
 } // namespace dfe

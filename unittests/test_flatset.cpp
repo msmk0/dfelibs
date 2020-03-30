@@ -9,8 +9,7 @@
 
 using dfe::FlatSet;
 
-BOOST_AUTO_TEST_CASE(flatset_int)
-{
+BOOST_AUTO_TEST_CASE(flatset_int) {
   FlatSet<int> set;
 
   set.insert_or_assign(1);
@@ -63,8 +62,7 @@ struct ThingComparator {
   bool operator()(const Thing& a, int bindex) { return a.index < bindex; }
 };
 
-BOOST_AUTO_TEST_CASE(flatset_custom_compare)
-{
+BOOST_AUTO_TEST_CASE(flatset_custom_compare) {
   FlatSet<Thing, ThingComparator> set;
 
   set.insert_or_assign({12, 0.25});

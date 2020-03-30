@@ -104,8 +104,7 @@ private:
 
 template<typename T, std::size_t N, typename Allocator>
 inline typename SmallVector<T, N, Allocator>::AllocatedStorage
-SmallVector<T, N, Allocator>::allocate_storage(size_type capacity)
-{
+SmallVector<T, N, Allocator>::allocate_storage(size_type capacity) {
   AllocatedStorage s;
   s.capacity = capacity;
   s.data = std::allocator_traits<Allocator>::allocate(m_alloc, capacity);
@@ -115,17 +114,17 @@ SmallVector<T, N, Allocator>::allocate_storage(size_type capacity)
 // Destruct elements in in-place storage assuming they are valid.
 template<typename T, std::size_t N, typename Allocator>
 inline void
-SmallVector<T, N, Allocator>::destruct_inplace()
-{
+SmallVector<T, N, Allocator>::destruct_inplace() {
   T* ptr = reinterpret_cast<T*>(m_inplace);
-  for (T* end = ptr + m_size; ptr != end; ++ptr) { ptr->~T(); }
+  for (T* end = ptr + m_size; ptr != end; ++ptr) {
+    ptr->~T();
+  }
 }
 
 // Destruct and deallocate elements in heap-allocated storage.
 template<typename T, std::size_t N, typename Allocator>
 inline void
-SmallVector<T, N, Allocator>::destruct_deallocate_onheap()
-{
+SmallVector<T, N, Allocator>::destruct_deallocate_onheap() {
   T* ptr = m_onheap.data;
   for (T* end = ptr + m_size; ptr != end; ++ptr) {
     std::allocator_traits<Allocator>::destroy(m_alloc, ptr);
@@ -137,8 +136,7 @@ SmallVector<T, N, Allocator>::destruct_deallocate_onheap()
 }
 
 template<typename T, std::size_t N, typename Allocator>
-inline T& SmallVector<T, N, Allocator>::operator[](size_type idx)
-{
+inline T& SmallVector<T, N, Allocator>::operator[](size_type idx) {
   if (m_size <= N) {
     return *(reinterpret_cast<T*>(m_inplace) + idx);
   } else {
@@ -147,8 +145,7 @@ inline T& SmallVector<T, N, Allocator>::operator[](size_type idx)
 }
 
 template<typename T, std::size_t N, typename Allocator>
-inline const T& SmallVector<T, N, Allocator>::operator[](size_type idx) const
-{
+inline const T& SmallVector<T, N, Allocator>::operator[](size_type idx) const {
   if (m_size <= N) {
     return *(reinterpret_cast<const T*>(m_inplace) + idx);
   } else {
@@ -158,22 +155,19 @@ inline const T& SmallVector<T, N, Allocator>::operator[](size_type idx) const
 
 template<typename T, std::size_t N, typename Allocator>
 inline typename SmallVector<T, N, Allocator>::iterator
-SmallVector<T, N, Allocator>::begin()
-{
+SmallVector<T, N, Allocator>::begin() {
   return (m_size <= N) ? reinterpret_cast<T*>(m_inplace) : m_onheap.data;
 }
 
 template<typename T, std::size_t N, typename Allocator>
 inline typename SmallVector<T, N, Allocator>::const_iterator
-SmallVector<T, N, Allocator>::begin() const
-{
+SmallVector<T, N, Allocator>::begin() const {
   return (m_size <= N) ? reinterpret_cast<const T*>(m_inplace) : m_onheap.data;
 }
 
 template<typename T, std::size_t N, typename Allocator>
 inline void
-SmallVector<T, N, Allocator>::clear()
-{
+SmallVector<T, N, Allocator>::clear() {
   if (m_size <= N) {
     destruct_inplace();
   } else {
@@ -185,8 +179,7 @@ SmallVector<T, N, Allocator>::clear()
 template<typename T, std::size_t N, typename Allocator>
 template<typename... Args>
 typename SmallVector<T, N, Allocator>::iterator
-SmallVector<T, N, Allocator>::emplace(const_iterator pos, Args&&... args)
-{
+SmallVector<T, N, Allocator>::emplace(const_iterator pos, Args&&... args) {
   using AllocatorTraits = std::allocator_traits<Allocator>;
 
   // TODO how, when to check iterator validity?
@@ -243,8 +236,7 @@ SmallVector<T, N, Allocator>::emplace(const_iterator pos, Args&&... args)
 template<typename T, std::size_t N, typename Allocator>
 template<typename... Args>
 inline typename SmallVector<T, N, Allocator>::value_type&
-SmallVector<T, N, Allocator>::emplace_back(Args&&... args)
-{
+SmallVector<T, N, Allocator>::emplace_back(Args&&... args) {
   return *emplace(end(), std::forward<Args>(args)...);
 }
 

@@ -11,8 +11,7 @@
 template<typename T, typename Compare = std::less<T>>
 using Set = dfe::FlatSet<T, Compare, dfe::SmallVector<T, 7>>;
 
-BOOST_AUTO_TEST_CASE(flatset_int)
-{
+BOOST_AUTO_TEST_CASE(flatset_int) {
   Set<int> set;
 
   set.insert_or_assign(1);
@@ -65,8 +64,7 @@ struct ThingComparator {
   bool operator()(const Thing& a, int bindex) { return a.index < bindex; }
 };
 
-BOOST_AUTO_TEST_CASE(flatset_custom_compare)
-{
+BOOST_AUTO_TEST_CASE(flatset_custom_compare) {
   Set<Thing, ThingComparator> set;
 
   set.insert_or_assign({12, 0.25});

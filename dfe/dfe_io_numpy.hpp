@@ -101,8 +101,7 @@ constexpr const char* kNumpyDtypeCode<bool> = "?";
 
 template<typename... Types>
 constexpr std::array<const char*, sizeof...(Types)>
-dtypes_codes(const std::tuple<Types...>& t)
-{
+dtypes_codes(const std::tuple<Types...>& t) {
   return {kNumpyDtypeCode<typename std::decay<Types>::type>...};
 }
 
@@ -111,8 +110,7 @@ dtypes_codes(const std::tuple<Types...>& t)
 // Derived from:
 // https://stackoverflow.com/questions/1001307/detecting-endianness-programmatically-in-a-c-program
 inline char
-dtype_endianness_modifier()
-{
+dtype_endianness_modifier() {
   union {
     uint32_t i;
     char c[4];
@@ -126,8 +124,7 @@ dtype_endianness_modifier()
 
 template<typename NamedTuple>
 inline std::string
-dtypes_description(const NamedTuple& nt)
-{
+dtypes_description(const NamedTuple& nt) {
   std::string descr;
   std::size_t n = std::tuple_size<typename NamedTuple::Tuple>::value;
   auto names = nt.names();
@@ -141,7 +138,9 @@ dtypes_description(const NamedTuple& nt)
     descr += endianness_modifier;
     descr += codes[i];
     descr += "')";
-    if ((i + 1) < n) { descr += ", "; }
+    if ((i + 1) < n) {
+      descr += ", ";
+    }
   }
   descr += ']';
   return descr;
@@ -154,9 +153,7 @@ dtypes_description(const NamedTuple& nt)
 template<typename NamedTuple>
 inline NamedTupleNumpyWriter<NamedTuple>::NamedTupleNumpyWriter(
   const std::string& path)
-  : m_fixed_header_length(0)
-  , m_num_tuples(0)
-{
+  : m_fixed_header_length(0), m_num_tuples(0) {
   // make our life easier. always throw on error
   m_file.exceptions(std::ofstream::badbit | std::ofstream::failbit);
   m_file.open(
@@ -169,17 +166,17 @@ inline NamedTupleNumpyWriter<NamedTuple>::NamedTupleNumpyWriter(
 }
 
 template<typename NamedTuple>
-inline NamedTupleNumpyWriter<NamedTuple>::~NamedTupleNumpyWriter()
-{
-  if (!m_file.is_open()) { return; }
+inline NamedTupleNumpyWriter<NamedTuple>::~NamedTupleNumpyWriter() {
+  if (!m_file.is_open()) {
+    return;
+  }
   write_header(m_num_tuples);
   m_file.close();
 }
 
 template<typename NamedTuple>
 inline void
-NamedTupleNumpyWriter<NamedTuple>::append(const NamedTuple& record)
-{
+NamedTupleNumpyWriter<NamedTuple>::append(const NamedTuple& record) {
   write_record(
     record, std::make_index_sequence<std::tuple_size<Tuple>::value>{});
   m_num_tuples += 1;
@@ -187,8 +184,7 @@ NamedTupleNumpyWriter<NamedTuple>::append(const NamedTuple& record)
 
 template<typename NamedTuple>
 inline void
-NamedTupleNumpyWriter<NamedTuple>::write_header(std::size_t num_tuples)
-{
+NamedTupleNumpyWriter<NamedTuple>::write_header(std::size_t num_tuples) {
   std::string header;
   // magic
   header += "\x93NUMPY";
@@ -206,14 +202,18 @@ NamedTupleNumpyWriter<NamedTuple>::write_header(std::size_t num_tuples)
   header += std::to_string(num_tuples);
   header += ",)}";
   // padd w/ spaces for 16 byte alignment of the whole header
-  while (((header.size() + 1) % 16) != 0) { header += ' '; }
+  while (((header.size() + 1) % 16) != 0) {
+    header += ' ';
+  }
   // the initial header fixes the available header size. updated headers
   // must always occupy the same space and might require additional
   // padding spaces
   if (m_fixed_header_length == 0) {
     m_fixed_header_length = header.size();
   } else {
-    while (header.size() < m_fixed_header_length) { header += ' '; }
+    while (header.size() < m_fixed_header_length) {
+      header += ' ';
+    }
   }
   header += '\n';
   // replace the header length place holder
@@ -228,8 +228,7 @@ template<typename NamedTuple>
 template<std::size_t... I>
 inline void
 NamedTupleNumpyWriter<NamedTuple>::write_record(
-  const NamedTuple& record, std::index_sequence<I...>)
-{
+  const NamedTuple& record, std::index_sequence<I...>) {
   using std::get;
 
   // see namedtuple_impl::print_tuple for explanation
@@ -239,8 +238,7 @@ NamedTupleNumpyWriter<NamedTuple>::write_record(
 template<typename NamedTuple>
 template<typename T>
 inline void
-NamedTupleNumpyWriter<NamedTuple>::write_bytes(const T* ptr)
-{
+NamedTupleNumpyWriter<NamedTuple>::write_bytes(const T* ptr) {
   m_file.write(reinterpret_cast<const char*>(ptr), sizeof(T));
 }
 

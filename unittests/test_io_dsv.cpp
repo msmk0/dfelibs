@@ -28,8 +28,7 @@ BOOST_TEST_DONT_PRINT_LOG_VALUE(Record::Tuple)
 
 constexpr size_t kNRecords = 1024;
 
-BOOST_AUTO_TEST_CASE(csv_namedtuple_write_read)
-{
+BOOST_AUTO_TEST_CASE(csv_namedtuple_write_read) {
   // write some data
   {
     dfe::NamedTupleCsvWriter<Record> writer("test.csv");
@@ -54,8 +53,7 @@ BOOST_AUTO_TEST_CASE(csv_namedtuple_write_read)
   }
 }
 
-BOOST_AUTO_TEST_CASE(tsv_namedtuple_write_read)
-{
+BOOST_AUTO_TEST_CASE(tsv_namedtuple_write_read) {
   // write some data
   {
     dfe::NamedTupleTsvWriter<Record> writer("test.tsv");
@@ -80,8 +78,7 @@ BOOST_AUTO_TEST_CASE(tsv_namedtuple_write_read)
   }
 }
 
-BOOST_AUTO_TEST_CASE(tsv_untyped_write)
-{
+BOOST_AUTO_TEST_CASE(tsv_untyped_write) {
   // open writer with 4 columns
   dfe::TsvWriter writer({"col0", "col1", "a", "z"}, "untyped.tsv");
 
@@ -104,8 +101,7 @@ BOOST_AUTO_TEST_CASE(tsv_untyped_write)
 
 // construct a path to an example data file
 std::string
-make_data_path(const char* filename)
-{
+make_data_path(const char* filename) {
   std::string path = DFE_UNITTESTS_DIRECTORY;
   path += "/data/namedtuple-";
   path += filename;
@@ -118,8 +114,7 @@ constexpr size_t kNOnfile = 32;
 
 // w/ reordered columns
 
-BOOST_AUTO_TEST_CASE(csv_namedtuple_read_reordered)
-{
+BOOST_AUTO_TEST_CASE(csv_namedtuple_read_reordered) {
   std::string path = make_data_path("reordered_columns.csv");
   dfe::NamedTupleCsvReader<Record> reader(path);
 
@@ -127,8 +122,7 @@ BOOST_AUTO_TEST_CASE(csv_namedtuple_read_reordered)
   BOOST_TEST(reader.num_records() == kNOnfile);
 }
 
-BOOST_AUTO_TEST_CASE(tsv_namedtuple_read_reordered)
-{
+BOOST_AUTO_TEST_CASE(tsv_namedtuple_read_reordered) {
   std::string path = make_data_path("reordered_columns.tsv");
   dfe::NamedTupleTsvReader<Record> reader(path);
 
@@ -150,12 +144,13 @@ BOOST_AUTO_TEST_CASE(tsv_namedtuple_read_reordered)
                                << record << ")"); \
       BOOST_TEST(record.THIS_IS_UNUSED == Record().THIS_IS_UNUSED); \
       BOOST_TEST(extra.size() == nextra); \
-      for (auto x : extra) { BOOST_TEST(x == i); } \
+      for (auto x : extra) { \
+        BOOST_TEST(x == i); \
+      } \
     } \
   } while (false)
 
-BOOST_AUTO_TEST_CASE(csv_namedtuple_read_extra_columns)
-{
+BOOST_AUTO_TEST_CASE(csv_namedtuple_read_extra_columns) {
   dfe::NamedTupleCsvReader<Record> reader(make_data_path("extra_columns.csv"));
 
   TEST_READER_RECORDS_EXTRA(reader, 3);
@@ -163,8 +158,7 @@ BOOST_AUTO_TEST_CASE(csv_namedtuple_read_extra_columns)
   BOOST_TEST(reader.num_extra_columns() == 3);
 }
 
-BOOST_AUTO_TEST_CASE(tsv_namedtuple_read_extra_columns)
-{
+BOOST_AUTO_TEST_CASE(tsv_namedtuple_read_extra_columns) {
   dfe::NamedTupleTsvReader<Record> reader(make_data_path("extra_columns.tsv"));
 
   TEST_READER_RECORDS_EXTRA(reader, 3);
@@ -175,8 +169,7 @@ BOOST_AUTO_TEST_CASE(tsv_namedtuple_read_extra_columns)
 // w/ optional columns
 
 static void
-test_read_with_optionals(const std::vector<std::string>& optional_columns)
-{
+test_read_with_optionals(const std::vector<std::string>& optional_columns) {
   using Reader = dfe::NamedTupleCsvReader<Record>;
 
   Reader reader(make_data_path("missing_columns.csv"), optional_columns);
@@ -199,15 +192,12 @@ test_read_with_optionals(const std::vector<std::string>& optional_columns)
   BOOST_TEST(reader.num_extra_columns() == 0);
 }
 
-BOOST_AUTO_TEST_CASE(csv_namedtuple_read_missing_optionals)
-{
-  BOOST_TEST_CONTEXT("optional columns b,x")
-  {
+BOOST_AUTO_TEST_CASE(csv_namedtuple_read_missing_optionals) {
+  BOOST_TEST_CONTEXT("optional columns b,x") {
     // b and x are actually missing in the file
     test_read_with_optionals({"b", "x"});
   }
-  BOOST_TEST_CONTEXT("optional columns a,b,x,z")
-  {
+  BOOST_TEST_CONTEXT("optional columns a,b,x,z") {
     // b and x are actually missing but a and z exist
     test_read_with_optionals({"a", "b", "x", "z"});
   }
@@ -215,8 +205,7 @@ BOOST_AUTO_TEST_CASE(csv_namedtuple_read_missing_optionals)
 
 // failure tests for readers
 
-BOOST_AUTO_TEST_CASE(tsv_namedtuple_read_bad_files)
-{
+BOOST_AUTO_TEST_CASE(tsv_namedtuple_read_bad_files) {
   using Reader = dfe::NamedTupleCsvReader<Record>;
 
   Record r;
