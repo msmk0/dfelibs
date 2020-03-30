@@ -9,12 +9,14 @@ endif()
 
 project(dfelibs LANGUAGES CXX)
 
+# options are on by default if build directly, i.e. not via add_subdirectory
 option(dfelibs_BUILD_EXAMPLES "Build examples" ${dfelibs_MASTER_PROJECT})
 option(dfelibs_BUILD_UNITTESTS "Build unit tests" ${dfelibs_MASTER_PROJECT})
 option(dfelibs_ENABLE_INSTALL "Enable library installation" ${dfelibs_MASTER_PROJECT})
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+# enable most warnings and treat them as errors
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror")
 set(CMAKE_CXX_EXTENSIONS off)
 
 # define header-only library
