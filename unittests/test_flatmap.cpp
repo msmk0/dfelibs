@@ -28,7 +28,7 @@ BOOST_AUTO_TEST_CASE(flatmap_int_int) {
   BOOST_TEST(!m.contains(1));
   BOOST_TEST(!m.contains(-1));
   BOOST_TEST(!m.contains(INT_MIN));
-};
+}
 
 BOOST_AUTO_TEST_CASE(flatmap_string_string) {
   dfe::FlatMap<std::string, std::string> m;

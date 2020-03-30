@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE(flatset_int) {
     set.insert_or_assign(x);
     BOOST_CHECK(set.size() == size_before);
   }
-};
+}
 
 struct Thing {
   int index;

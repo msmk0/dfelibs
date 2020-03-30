@@ -19,7 +19,7 @@ inline ostream&
 operator<<(ostream& os, const pair<T, T>& x) {
   os << "{" << x.first << ", " << x.second << "}";
   return os;
-};
+}
 } // namespace std
 
 // test different input container types
