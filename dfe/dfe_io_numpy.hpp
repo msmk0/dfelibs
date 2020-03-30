@@ -229,10 +229,10 @@ template<std::size_t... I>
 inline void
 NamedTupleNumpyWriter<NamedTuple>::write_record(
   const NamedTuple& record, std::index_sequence<I...>) {
-  using std::get;
-
   // see namedtuple_impl::print_tuple for explanation
-  (void)(int[]){0, (write_bytes(&get<I>(record)), 0)...};
+  using std::get;
+  using Vacuum = int[];
+  (void)Vacuum{(write_bytes(&get<I>(record)), 0)...};
 }
 
 template<typename NamedTuple>

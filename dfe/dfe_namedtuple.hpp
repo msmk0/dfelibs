@@ -127,22 +127,22 @@ inline std::ostream&
 print_tuple(
   std::ostream& os, const Names& n, const Values& v,
   std::index_sequence<I...>) {
-  using std::get;
-
   // we want to execute some expression for every entry in the index pack. this
   // requires a construction that can take a variable number of arguments into
   // which we can unpack the indices. inside a function, constructing an
   // array with an initializer list will do the job, i.e. we will effectively
-  // create somthing similar to
+  // create the following statement
   //
   //     int x[] = {...};
   //
   // since we do not care about the actual values within the array, the
   // initializer list is cast twice: once to the array type and then to void.
   // this ignores the actual values and silences warnings about unused
-  // variables. what we get is
+  // variables. to get the correct initializer list syntax, the array type
+  // must be typedef'd as a single type. what we get is
   //
-  //     (void)(int[]){0, ...};
+  //     using Vacuum = int[];
+  //     (void)Vacuum{...};
   //
   // in order for this to work, the expression that we want to instantiate
   // needs to evaluate to the element type of the array (here: `int`). this can
@@ -152,13 +152,15 @@ print_tuple(
   // `(<expr>, 0)` executes `<expr>` but always evalutes to an integer of value
   // zero. if <expr> uses the index pack variable `I` in the following setup
   //
-  //     (void)(int[]){0, (<expr>, 0)...};
+  //     (void)Vacuum{(<expr>, 0)...};
   //
   // it is instantiatied for each element within the pack (with appropriate ,
-  // placments). thus, effectively looping over every entry in the pack and
+  // placements). thus, effectively looping over every entry in the pack and
   // calling <expr> for each (here: printing to os);
-  (void)(int[]){
-    0, (os << ((0 < I) ? " " : "") << get<I>(n) << "=" << get<I>(v), 0)...};
+  using std::get;
+  using Vacuum = int[];
+  (void)Vacuum{
+    (os << ((0 < I) ? " " : "") << get<I>(n) << "=" << get<I>(v), 0)...};
   return os;
 }
 

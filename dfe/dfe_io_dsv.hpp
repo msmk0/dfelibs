@@ -243,7 +243,8 @@ private:
   void parse_record(NamedTuple& record, std::index_sequence<I...>) const {
     // see namedtuple_impl::print_tuple for explanation
     // allow different column ordering on file and optional columns
-    (void)(int[]){0, (parse_element<I>(record), 0)...};
+    using Vacuum = int[];
+    (void)Vacuum{(parse_element<I>(record), 0)...};
   }
   template<std::size_t I>
   void parse_element(NamedTuple& record) const {
