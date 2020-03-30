@@ -45,7 +45,7 @@ struct WithFunctions {
 };
 
 int
-main(int argc, char* argv[]) {
+main() {
   using Type = dfe::Variable::Type;
   using dfe::Dispatcher;
 

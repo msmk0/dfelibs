@@ -83,7 +83,7 @@ read_file_csv() {
 }
 
 int
-main(int argc, char* argv[]) {
+main() {
   write_files();
   read_file_csv();
   return EXIT_SUCCESS;
