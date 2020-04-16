@@ -38,6 +38,8 @@ if(dfelibs_BUILD_UNITTESTS)
   add_subdirectory(unittests)
 endif()
 
-# source code formatting
-include(ClangFormatTargets)
-add_format_targets(dfe/*.hpp examples/*.cpp unittests/*.cpp unittests/*.hpp)
+# source code formatting targets (only if build directly)
+if(dfelibs_MASTER_PROJECT)
+  include(ClangFormatTargets)
+  add_format_targets(dfe/*.hpp examples/*.cpp unittests/*.cpp unittests/*.hpp)
+endif()
