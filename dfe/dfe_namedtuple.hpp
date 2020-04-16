@@ -78,7 +78,8 @@
     const name& nt) { \
     return nt.template get<I>(); \
   } \
-  friend ::std::ostream& operator<<(::std::ostream& os, const name& nt) { \
+  friend inline ::std::ostream& operator<<(::std::ostream& os, const name& nt) \
+    __attribute__((unused)) { \
     return ::dfe::namedtuple_impl::print_tuple( \
       os, nt.names(), nt.tuple(), \
       ::std::make_index_sequence<::std::tuple_size<Tuple>::value>{}); \
