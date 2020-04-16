@@ -7,7 +7,7 @@ if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
   set(dfelibs_MASTER_PROJECT TRUE)
 endif()
 
-project(dfelibs LANGUAGES CXX)
+project(dfelibs VERSION 20200416 LANGUAGES CXX)
 
 # options are on by default if build directly, i.e. not via add_subdirectory
 option(dfelibs_BUILD_EXAMPLES "Build examples" ${dfelibs_MASTER_PROJECT})

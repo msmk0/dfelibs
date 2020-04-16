@@ -1,6 +1,6 @@
 # Changelog
 
-## to-be-released
+## v20200416
 
 *   Mark the output operator `operator<<` for named tuples as
     potentially unused to suppress compile errors.
